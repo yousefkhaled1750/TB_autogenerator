@@ -1,0 +1,2 @@
+we need to design the parser but we need to set some assumptions before.
+1. each module will have a single always block
