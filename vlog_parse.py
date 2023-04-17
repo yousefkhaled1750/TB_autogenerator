@@ -112,41 +112,86 @@ print(internal_signal)
 print('\n\n')
 
 
+# getting the continuous assignment
+# 1. search for assign at the beginning of the line
+# 2. get the output 
+# 3. check if it's conditional assignment
+# 4. get the inputs 
+continuous_parameters = []
+file_code = open(fname, 'rt')
+i = 0
+for line in file_code:                  #assign data_out = op1 [+\-\*/%&|^]  op2;
+    if re.search(r'assign', line):
+        cont = {}
+        i = i + 1
+        s =re.split(r'\s+',line)
+        print(len(s))
+        print(re.split(r'\s+',line))
+        if not re.search(r':',line) :       #assign out = (expr)
+            if len(s) == 7:                 # 2 operands operation
+                cont['output'] = s[1] 
+                cont['op1'] = s[3]
+                cont['op2'] = s[5][:-1]
+                cont['operation'] = s[4]
+            if len(s) == 5:                     # 1 operand operation (! ~ & | ^ ~& ~| ~^)
+                if re.search('~[&|^]',s[3]):    # if it contains negating operator
+                    print('containts after negating operator')
+                    cont['output'] = s[1] 
+                    cont['op1'] = s[3][2:][:-1]
+                    cont['operation'] = s[3][:2]
+                else:
+                    cont['output'] = s[1] 
+                    cont['op1'] = s[3][1:][:-1]
+                    cont['operation'] = s[3][0]
+            print(cont)
+        else:                   #assign out = cond ? a : b;
+            cont['output'] = s[1]
+            cont['condition'] = s[3]
+            cont['op1'] = s[5]
+            cont['op2'] = s[7][:-1]
+            cont['operation'] = 'conditional'
+            print(cont)
+        continuous_parameters.append(cont)
+print(continuous_parameters)
+print('\n\n')
+
 # getting the always statement
 # 1. get the type and excitation signals of the always block
 # 2. find a way to get the output signals associated to this always block
-always_parameters = []
-file_code = open(fname, 'rt')
-i = 0
-for line in file_code:
+# always_parameters = []
+# file_code = open(fname, 'rt')
+# i = 0
+# for line in file_code:
 
-    if re.search(r'always',line):
-        always = {}
-        i = i + 1
-        print(re.split(r'always\s*@\s*\(',line))
-        s = re.split(r'always\s*@\s*\(',line)[1]
-        s = re.split(r'\s*\)',s)[0]
-        str = ''.join(re.split(r',',s))
-        print("s= " + s)
-        print("\n\n")
-        if(re.search("posedge|negedge",str)):
-           always["type"] = "sequential"
-           always["clk"]  = re.findall(r'posedge\s(.*)\snegedge',str)
-           always["rst"]  = re.findall(r'negedge\s*(.*)',str)
-           print(always)
-           print("\n\n")
-           always_parameters.append(always)
-        else:
-            always["type"] = "combinational"
-            if(re.search(r'\*',str)):
-                always["signals"] = "*"
-            else:
-                s = re.split(r',\s',s)
-                always["signals"] = s
-            print(always)
-            print("\n\n")
-            always_parameters.append(always)
-print(always_parameters)
+#     if re.search(r'always',line):
+#         always = {}
+#         i = i + 1
+#         print(re.split(r'always\s*@\s*\(',line))
+#         s = re.split(r'always\s*@\s*\(',line)[1]
+#         s = re.split(r'\s*\)',s)[0]
+#         str = ''.join(re.split(r',',s))
+#         print("s= " + s)
+#         print("\n\n")
+#         if(re.search("posedge|negedge",str)):
+#            always["type"] = "sequential"
+#            always["clk"]  = re.findall(r'posedge\s(.*)\snegedge',str)
+#            always["rst"]  = re.findall(r'negedge\s*(.*)',str)
+#            print(always)
+#            print("\n\n")
+#            always_parameters.append(always)
+#         else:
+#             always["type"] = "combinational"
+#             if(re.search(r'\*',str)):
+#                 always["signals"] = "*"
+#             else:
+#                 s = re.split(r',\s',s)
+#                 always["signals"] = s
+#             print(always)
+#             print("\n\n")
+#             always_parameters.append(always)
+# print(always_parameters)
+
+
 
 
 # parsing the case statement

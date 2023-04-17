@@ -6,7 +6,10 @@ module file #(
 (
     input   wire    clk,rst,
     input   wire    [7:0] data_in,
-    output  reg     [7:0] data_out
+    input   wire    a,
+    input   wire    b,
+    output  reg     [7:0] data_out,
+    output  wire    out
 );
 
 localparam local = 'd5 ;
@@ -15,7 +18,9 @@ wire ayhaga;
 reg [7:0] register;
 reg x;
 
-assign ayhaga = data_in[3];
+assign out = a == b;
+assign ayhaga = x ? a : b;
+assign m = ~|r;
 
 always @(posedge clk, negedge rst) begin
     if (!rst) begin
