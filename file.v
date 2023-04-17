@@ -1,7 +1,7 @@
 module file #(
     parameter WIDTH = 8,
     parameter signed [7:0] par = 64,
-    parameter MUL_WIDTH = WIDTH*2,
+    parameter MUL_WIDTH = WIDTH*2
 )
 (
     input   wire    clk,rst,
@@ -16,19 +16,19 @@ localparam local = 'd5 ;
 wire [7:0] byte;
 wire ayhaga;
 reg [7:0] register;
-reg x;
+reg x, m;
 
 assign out = a == b;
 assign ayhaga = x ? a : b;
-assign m = ~|r;
+
 
 always @(posedge clk, negedge rst) begin
-    if (!rst) begin
+    if (!rst)
         data_out <= 'd0;
-    end else begin
-        data_out <= data_in;
+    else 
+        data_out <= data_in + 5;
     end
-end
+
 
 always @(*) begin
     x = data_in[0];

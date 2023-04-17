@@ -1,2 +1,10 @@
 we need to design the parser but we need to set some assumptions before.
-1. each module will have a single always block
+1. each always block will have a single output
+2. the "end" operator will be only for always block
+3. if statements won't have begin and end since we are working on only 1 output, so it will be only single line
+4. in conditional continuous assignment, the two cases will be only single variable. // assign out = x? a : b;
+5. 
+
+
+some assumptions:
+1. operation

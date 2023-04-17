@@ -158,40 +158,95 @@ print('\n\n')
 # getting the always statement
 # 1. get the type and excitation signals of the always block
 # 2. find a way to get the output signals associated to this always block
-# always_parameters = []
-# file_code = open(fname, 'rt')
-# i = 0
-# for line in file_code:
+always_parameters = []
+file_code = open(fname, 'rt')
+i = 0
+count = 0
+for line in file_code:
+    if re.search(r'always',line):
+        always = {}
+        i = i + 1
+        print(re.split(r'always\s*@\s*\(',line))
+        s = re.split(r'always\s*@\s*\(',line)[1]
+        s = re.split(r'\s*\)',s)[0]
+        str = ''.join(re.split(r',',s))
+        print("s= " + s)
+        print("\n\n")
+        if(re.search("posedge|negedge",str)):
+           always["type"] = "sequential"
+           always["clk"]  = re.findall(r'posedge\s(.*)\snegedge',str)
+           always["rst"]  = re.findall(r'negedge\s*(.*)',str)
+           print(always)
+           print("\n\n")
+           always_parameters.append(always)
+        else:
+            always["type"] = "combinational"
+            if(re.search(r'\*',str)):
+                always["signals"] = "*"
+            else:
+                s = re.split(r',\s',s)
+                always["signals"] = s
+            print(always)
+            print("\n\n")
+            always_parameters.append(always)
+print(always_parameters)
 
-#     if re.search(r'always',line):
-#         always = {}
-#         i = i + 1
-#         print(re.split(r'always\s*@\s*\(',line))
-#         s = re.split(r'always\s*@\s*\(',line)[1]
-#         s = re.split(r'\s*\)',s)[0]
-#         str = ''.join(re.split(r',',s))
-#         print("s= " + s)
-#         print("\n\n")
-#         if(re.search("posedge|negedge",str)):
-#            always["type"] = "sequential"
-#            always["clk"]  = re.findall(r'posedge\s(.*)\snegedge',str)
-#            always["rst"]  = re.findall(r'negedge\s*(.*)',str)
-#            print(always)
-#            print("\n\n")
-#            always_parameters.append(always)
-#         else:
-#             always["type"] = "combinational"
-#             if(re.search(r'\*',str)):
-#                 always["signals"] = "*"
-#             else:
-#                 s = re.split(r',\s',s)
-#                 always["signals"] = s
-#             print(always)
-#             print("\n\n")
-#             always_parameters.append(always)
-# print(always_parameters)
+print('\n\n')
 
+always_locations = []
+always_locations_dict = {}
+always_operations_list = []
+single_always_operations_list = []
+always_operation_dict = {}
+always_no = 0
+in_always = False
+line_no = 0
+file_code = open(fname, 'rt')
+for line in file_code:
+    line_no = line_no + 1
+    if re.search(r'always',line):
+        always_locations_dict["start_line"] = line_no
+        in_always = True
+        always_no = always_no + 1
+    elif re.search(r'end[\s|\n]',line):
+        always_locations_dict["end_line"] = line_no
+        always_locations.append(always_locations_dict)
+        in_always = False
+        always_operations_list.append(single_always_operations_list)
+    else:
+        if in_always == True and re.search(r'=',line) :     # contains assignment out <= x + b; 
+            s =re.split(r'\s+',line)
+            always_operation_dict = {}
+            always_operation_dict['always_no'] = always_no
+            if len(s) == 7:                 # 2 operands operation
+                always_operation_dict['output'] = s[1] 
+                always_operation_dict['assign'] = s[2]
+                always_operation_dict['op1'] = s[3]
+                always_operation_dict['op2'] = s[5][:-1]
+                always_operation_dict['operation'] = s[4]
+                single_always_operations_list.append(always_operation_dict)
+            if len(s) == 5:                     # 1 operand operation (! ~ & | ^ ~& ~| ~^)
+                if re.search('~[&|^]',s[3]):    # if it contains negating operator
+                    always_operation_dict['output'] = s[1] 
+                    always_operation_dict['assign'] = s[2]
+                    always_operation_dict['op1'] = s[3][2:][:-1]
+                    always_operation_dict['operation'] = s[3][:2]
+                elif re.search('~',s[3]):
+                    always_operation_dict['output'] = s[1]
+                    always_operation_dict['assign'] = s[2] 
+                    always_operation_dict['op1'] = s[3][1:][:-1]
+                    always_operation_dict['operation'] = s[3][0]
+                else:
+                    always_operation_dict['output'] = s[1]
+                    always_operation_dict['assign'] = s[2] 
+                    always_operation_dict['op1'] = s[3][:-1]
+                    always_operation_dict['operation'] = 'nop'
+                single_always_operations_list.append(always_operation_dict)
+            
 
+print(single_always_operations_list) 
+print()
+print(always_locations)
 
 
 # parsing the case statement
