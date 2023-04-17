@@ -76,16 +76,13 @@ for line in file_code:
             signal["type"] = 'wire'
             signal["size"] = size         
             internal_signal.append(signal)
-            print(s)
-            print(signal)
         else:
             s = re.split(r'\s+',line)
             name = str(re.findall(r'\s*(.*);',s[1]))[2:][:-2]
             signal["name"] = name
             signal["type"] = 'wire'
+            signal["size"] = 1
             internal_signal.append(signal)
-            print(s)
-            print(name)
     elif re.search(r'^reg',line):
         if re.search(r'\[',line):
             s = re.split(r'\[|\]',line)
@@ -97,17 +94,15 @@ for line in file_code:
             signal["type"] = 'reg'
             signal["size"] = size         
             internal_signal.append(signal)
-            print(s)
-            print(signal)
         else:
             s = re.split(r'\s+',line)
             name = str(re.findall(r'\s*(.*);',s[1]))[2:][:-2]
             signal["name"] = name
             signal["type"] = 'reg'
+            signal["size"] = 1
             internal_signal.append(signal)
-            print(s)
-            print(name)
 print('\n\n')
+print("****************************************************************The internal signals****************************************************************")
 print(internal_signal)
 print('\n\n')
 
@@ -125,8 +120,6 @@ for line in file_code:                  #assign data_out = op1 [+\-\*/%&|^]  op2
         cont = {}
         i = i + 1
         s =re.split(r'\s+',line)
-        print(len(s))
-        print(re.split(r'\s+',line))
         if not re.search(r':',line) :       #assign out = (expr)
             if len(s) == 7:                 # 2 operands operation
                 cont['output'] = s[1] 
@@ -135,7 +128,6 @@ for line in file_code:                  #assign data_out = op1 [+\-\*/%&|^]  op2
                 cont['operation'] = s[4]
             if len(s) == 5:                     # 1 operand operation (! ~ & | ^ ~& ~| ~^)
                 if re.search('~[&|^]',s[3]):    # if it contains negating operator
-                    print('containts after negating operator')
                     cont['output'] = s[1] 
                     cont['op1'] = s[3][2:][:-1]
                     cont['operation'] = s[3][:2]
@@ -143,15 +135,14 @@ for line in file_code:                  #assign data_out = op1 [+\-\*/%&|^]  op2
                     cont['output'] = s[1] 
                     cont['op1'] = s[3][1:][:-1]
                     cont['operation'] = s[3][0]
-            print(cont)
         else:                   #assign out = cond ? a : b;
             cont['output'] = s[1]
             cont['condition'] = s[3]
             cont['op1'] = s[5]
             cont['op2'] = s[7][:-1]
             cont['operation'] = 'conditional'
-            print(cont)
         continuous_parameters.append(cont)
+print("****************************************************************The continuous assignments****************************************************************")
 print(continuous_parameters)
 print('\n\n')
 
@@ -166,18 +157,15 @@ for line in file_code:
     if re.search(r'always',line):
         always = {}
         i = i + 1
-        print(re.split(r'always\s*@\s*\(',line))
+        always['always_no'] = i
+        #print(re.split(r'always\s*@\s*\(',line))
         s = re.split(r'always\s*@\s*\(',line)[1]
         s = re.split(r'\s*\)',s)[0]
         str = ''.join(re.split(r',',s))
-        print("s= " + s)
-        print("\n\n")
         if(re.search("posedge|negedge",str)):
            always["type"] = "sequential"
            always["clk"]  = re.findall(r'posedge\s(.*)\snegedge',str)
            always["rst"]  = re.findall(r'negedge\s*(.*)',str)
-           print(always)
-           print("\n\n")
            always_parameters.append(always)
         else:
             always["type"] = "combinational"
@@ -186,9 +174,8 @@ for line in file_code:
             else:
                 s = re.split(r',\s',s)
                 always["signals"] = s
-            print(always)
-            print("\n\n")
             always_parameters.append(always)
+print("****************************************************************always parameters****************************************************************")
 print(always_parameters)
 
 print('\n\n')
@@ -205,9 +192,11 @@ file_code = open(fname, 'rt')
 for line in file_code:
     line_no = line_no + 1
     if re.search(r'always',line):
-        always_locations_dict["start_line"] = line_no
         in_always = True
         always_no = always_no + 1
+        always_locations_dict = {}
+        always_locations_dict["always_no"] = always_no
+        always_locations_dict["start_line"] = line_no
     elif re.search(r'end[\s|\n]',line):
         always_locations_dict["end_line"] = line_no
         always_locations.append(always_locations_dict)
@@ -243,12 +232,34 @@ for line in file_code:
                     always_operation_dict['operation'] = 'nop'
                 single_always_operations_list.append(always_operation_dict)
             
-
+print("****************************************************************always operations****************************************************************")
 print(single_always_operations_list) 
-print()
+print('\n')
+print("****************************************************************always locations****************************************************************")
 print(always_locations)
 
 
 # parsing the case statement
+# always_no = 0
+# line_no = 0
+# in_case = False
+# case_locations = []
+# case_locations_dict = {}
+# case_dict = {}
 
+# file_code = open(fname, 'rt')
+# for line in file_code:
+#     line_no = line_no + 1
+#     if re.search(r'case',line):
+#         always_no = always_no + 1
+#         print(re.findall(r'case(\s*(.*)\s*)'))
+#         case_dict['parameter'] = re.findall(r'case(\s*(.*)\s*)')
+#     if re.search(r'case\s*(',line):
+#         in_case = True
+#         case_locations_dict['start_line'] = line_no
+#     elif re.search(r'endcase',line):
+#         in_case = False
+#         case_locations_dict['end_line'] = line_no
+#         case_locations.append(case_locations_dict)
+    
 

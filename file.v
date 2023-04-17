@@ -16,7 +16,8 @@ localparam local = 'd5 ;
 wire [7:0] byte;
 wire ayhaga;
 reg [7:0] register;
-reg x, m;
+reg x;
+reg m;
 
 assign out = a == b;
 assign ayhaga = x ? a : b;
@@ -37,5 +38,6 @@ end
 always @(rst, clk, data_in) begin
     m = data_in[1];
 end
+
 
 endmodule
