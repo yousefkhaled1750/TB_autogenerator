@@ -238,28 +238,87 @@ print('\n')
 print("****************************************************************always locations****************************************************************")
 print(always_locations)
 
+print('\n\n')
 
 # parsing the case statement
-# always_no = 0
-# line_no = 0
-# in_case = False
-# case_locations = []
-# case_locations_dict = {}
-# case_dict = {}
+case_no = 0
+line_no = 0
+in_case = False
+case_locations = []
+case_locations_dict = {}
+case_dict = {}
+case_list = []
+case_operation_dict = {}
+case_operation_list = []
 
-# file_code = open(fname, 'rt')
-# for line in file_code:
-#     line_no = line_no + 1
-#     if re.search(r'case',line):
-#         always_no = always_no + 1
-#         print(re.findall(r'case(\s*(.*)\s*)'))
-#         case_dict['parameter'] = re.findall(r'case(\s*(.*)\s*)')
-#     if re.search(r'case\s*(',line):
-#         in_case = True
-#         case_locations_dict['start_line'] = line_no
-#     elif re.search(r'endcase',line):
-#         in_case = False
-#         case_locations_dict['end_line'] = line_no
-#         case_locations.append(case_locations_dict)
+
+file_code = open(fname, 'rt')
+for line in file_code:
+    line_no = line_no + 1
+    if re.search(r'\Wcase\s*',line):
+        num_cases = 0
+        case_no = case_no + 1
+        case_dict = {}
+        case_locations_dict = {}
+        case_locations_dict['case_no'] = case_no
+        case_locations_dict['start_line'] = line_no
+        in_case = True
+        case_dict['case_no'] = case_no
+        case_dict['parameter'] = re.findall(r'case\s*\(\s*(.*)\s*\)', line)
+        #print(case_dict['parameter'])
+    elif re.search(r'endcase',line):
+        in_case = False
+        case_locations_dict['end_line'] = line_no
+        #print(case_locations_dict)
+        case_locations.append(case_locations_dict)
+        case_dict['num_cases'] = num_cases
+        case_dict['operations'] = case_operation_list
+        #print(case_dict)
+        #print('\n\n')
+        case_list.append(case_dict)
+    else:
+        if in_case == True and re.search(r':',line):
+            num_cases = num_cases + 1
+            case_operation_dict = {}
+            #print(line)
+            s =re.split(r'\s+',line)
+            #print(s)
+            if len(s) == 8:                 # 2 operands operation
+                case_operation_dict['case'] = s[1]
+                case_operation_dict['output'] = s[2]
+                case_operation_dict['assign'] = s[3]
+                case_operation_dict['op1'] = s[4]
+                case_operation_dict['operation'] = s[5]
+                case_operation_dict['op2'] = s[6][:-1]
+                #print(case_operation_dict)
+                case_operation_list.append(case_operation_dict)
+            if len(s) == 6:
+                if re.search('~[&|^]',s[4]):    # if it contains negating operator
+                    case_operation_dict['case'] = s[1]
+                    case_operation_dict['output'] = s[2]
+                    case_operation_dict['assign'] = s[3]
+                    case_operation_dict['op1'] = s[4][2:][:-1]
+                    case_operation_dict['operation'] = s[4][:2]
+                elif re.search('~',s[4]):
+                    case_operation_dict['case'] = s[1]
+                    case_operation_dict['output'] = s[2]
+                    case_operation_dict['assign'] = s[3]
+                    case_operation_dict['op1'] = s[4][1:][:-1]
+                    case_operation_dict['operation'] = s[4][0]
+                else:
+                    case_operation_dict['case'] = s[1]
+                    case_operation_dict['output'] = s[2]
+                    case_operation_dict['assign'] = s[3]
+                    case_operation_dict['op1'] = s[4][:-1]
+                    case_operation_dict['operation'] = 'nop'
+                #print(case_operation_dict)
+                case_operation_list.append(case_operation_dict)
+
+print("****************************************************************case operations****************************************************************")
+print(case_list)
+print('\n\n')
+print("****************************************************************case locations****************************************************************")
+print(case_locations)
+            
     
 
