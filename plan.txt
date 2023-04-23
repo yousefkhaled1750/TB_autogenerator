@@ -1,9 +1,15 @@
 we need to design the parser but we need to set some assumptions before.
 1. each always block will have a single output
 2. the "end" operator will be only for always block
-3. if statements won't have begin and end since we are working on only 1 output, so it will be only single line
+3. in always block, only the always statement will have begin and end (neither if nor case will have any begin or end)
+    always @() begin
+
+    end
 4. in conditional continuous assignment, the two cases will be only single variable. // assign out = x? a : b;
-5. 
+5. in case statement: the case and operation will be on the same line 
+    case (param)
+        1'd0 : (expr);
+        1'd1 : (expr);
 
 
 some assumptions:

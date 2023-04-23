@@ -319,6 +319,44 @@ print(case_list)
 print('\n\n')
 print("****************************************************************case locations****************************************************************")
 print(case_locations)
-            
-    
+print('\n\n')
+
+
+clk_period = int(input("Enter Clock period: "))
+
+## adding the testbench content
+TB_content = ""
+TB_content += '`timescale 1us/1ns\n'
+TB_content += 'module ' + m.name + '_tb ();\n'
+
+# adding the TB header ports
+for port in module_ports:
+    if module_ports[port]['dir'] == 'input':
+        TB_content += '\treg '
+    elif module_ports[port]['dir'] == 'output':
+        TB_content += '\twire '
+    if module_ports[port]['size'] > 1:
+        TB_content += '\t[{}:0]\t'.format(module_ports[port]['size'] - 1)
+    elif module_ports[port]['size'] == 1:
+        TB_content += '\t\t'
+    TB_content += port + '_tb;\n'   
+
+TB_content += '\n\n'
+# adding the clock generator
+TB_content += 'always #({})  clk_tb = ~clk_tb;\n'.format(clk_period/2)
+TB_content += '\n\n'
+
+i = 0
+# adding the DUT instantiation
+TB_content += m.name + ' DUT(\n'
+for port in module_ports:
+    if i < len(module_ports) - 1:
+        TB_content += '\t.'+port+'('+port+'_tb),\n'
+    else:
+        TB_content += '\t.'+port+'('+port+'_tb)\n\t);'
+    i += 1
+
+TB_content += '\n\n'
+
+print(TB_content)
 
