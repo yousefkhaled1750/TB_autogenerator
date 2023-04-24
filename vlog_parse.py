@@ -39,6 +39,7 @@ def get_vector_size(data_type):
         #print(1)
         return 1
 
+print('\n\n')
 module_name = set()
 for m in vlog_mods:
   print('Module "{}":'.format(m.name))
@@ -65,7 +66,7 @@ internal_signal = []
 file_code = open(fname, 'rt')
 for line in file_code:
     signal = {}
-    if re.search(r'^wire',line):
+    if re.search(r'^\s*wire',line):
         if re.search(r'\[',line):
             s = re.split(r'\[|\]',line)
             name = str(re.findall(r'\s*(.*)\s*;',s[2]))[2:][:-2]
@@ -122,11 +123,13 @@ for line in file_code:                  #assign data_out = op1 [+\-\*/%&|^]  op2
         s =re.split(r'\s+',line)
         if not re.search(r':',line) :       #assign out = (expr)
             if len(s) == 7:                 # 2 operands operation
+                cont['type'] = 'double'
                 cont['output'] = s[1] 
                 cont['op1'] = s[3]
                 cont['op2'] = s[5][:-1]
                 cont['operation'] = s[4]
             if len(s) == 5:                     # 1 operand operation (! ~ & | ^ ~& ~| ~^)
+                cont['type'] = 'single'
                 if re.search('~[&|^]',s[3]):    # if it contains negating operator
                     cont['output'] = s[1] 
                     cont['op1'] = s[3][2:][:-1]
@@ -136,6 +139,7 @@ for line in file_code:                  #assign data_out = op1 [+\-\*/%&|^]  op2
                     cont['op1'] = s[3][1:][:-1]
                     cont['operation'] = s[3][0]
         else:                   #assign out = cond ? a : b;
+            cont['type'] = 'double conditional'
             cont['output'] = s[1]
             cont['condition'] = s[3]
             cont['op1'] = s[5]
@@ -161,15 +165,15 @@ for line in file_code:
         #print(re.split(r'always\s*@\s*\(',line))
         s = re.split(r'always\s*@\s*\(',line)[1]
         s = re.split(r'\s*\)',s)[0]
-        str = ''.join(re.split(r',',s))
-        if(re.search("posedge|negedge",str)):
+        _str = ''.join(re.split(r',',s))
+        if(re.search("posedge|negedge",_str)):
            always["type"] = "sequential"
-           always["clk"]  = re.findall(r'posedge\s(.*)\snegedge',str)
-           always["rst"]  = re.findall(r'negedge\s*(.*)',str)
+           always["clk"]  = re.findall(r'posedge\s(.*)\snegedge',_str)
+           always["rst"]  = re.findall(r'negedge\s*(.*)',_str)
            always_parameters.append(always)
         else:
             always["type"] = "combinational"
-            if(re.search(r'\*',str)):
+            if(re.search(r'\*',_str)):
                 always["signals"] = "*"
             else:
                 s = re.split(r',\s',s)
@@ -208,13 +212,15 @@ for line in file_code:
             always_operation_dict = {}
             always_operation_dict['always_no'] = always_no
             if len(s) == 7:                 # 2 operands operation
+                always_operation_dict['type'] = 'double'
                 always_operation_dict['output'] = s[1] 
                 always_operation_dict['assign'] = s[2]
                 always_operation_dict['op1'] = s[3]
                 always_operation_dict['op2'] = s[5][:-1]
                 always_operation_dict['operation'] = s[4]
                 single_always_operations_list.append(always_operation_dict)
-            if len(s) == 5:                     # 1 operand operation (! ~ & | ^ ~& ~| ~^)
+            elif len(s) == 5:                     # 1 operand operation (! ~ & | ^ ~& ~| ~^)
+                always_operation_dict['type'] = 'single'
                 if re.search('~[&|^]',s[3]):    # if it contains negating operator
                     always_operation_dict['output'] = s[1] 
                     always_operation_dict['assign'] = s[2]
@@ -231,6 +237,34 @@ for line in file_code:
                     always_operation_dict['op1'] = s[3][:-1]
                     always_operation_dict['operation'] = 'nop'
                 single_always_operations_list.append(always_operation_dict)
+            elif len(s) == 8:                 # case statement with 2 operands
+                always_operation_dict['type'] = 'double'
+                always_operation_dict['output'] = s[2] 
+                always_operation_dict['assign'] = s[3]
+                always_operation_dict['op1'] = s[4]
+                always_operation_dict['op2'] = s[6][:-1]
+                always_operation_dict['operation'] = s[5]
+                single_always_operations_list.append(always_operation_dict)
+            elif len(s) == 6:   #case statement with 1 operand
+                always_operation_dict['type'] = 'single'
+                if re.search('~[&|^]',s[4]):    # if it contains negating operator
+                    always_operation_dict['output'] = s[2] 
+                    always_operation_dict['assign'] = s[3]
+                    always_operation_dict['op1'] = s[4][2:][:-1]
+                    always_operation_dict['operation'] = s[4][:2]
+                elif re.search('~',s[4]):
+                    always_operation_dict['output'] = s[2]
+                    always_operation_dict['assign'] = s[3] 
+                    always_operation_dict['op1'] = s[4][1:][:-1]
+                    always_operation_dict['operation'] = s[4][0]
+                else:
+                    always_operation_dict['output'] = s[2]
+                    always_operation_dict['assign'] = s[3] 
+                    always_operation_dict['op1'] = s[4][:-1]
+                    always_operation_dict['operation'] = 'nop'
+                single_always_operations_list.append(always_operation_dict)
+                
+                
             
 print("****************************************************************always operations****************************************************************")
 print(single_always_operations_list) 
@@ -324,6 +358,11 @@ print('\n\n')
 
 clk_period = int(input("Enter Clock period: "))
 
+
+input_ports = [x for x in module_ports if module_ports[x]['dir'] == 'input' and x != 'clk' and x != 'rst']
+output_ports = [x for x in module_ports if module_ports[x]['dir'] == 'output']
+internal_pins = [x['name'] for x in internal_signal ]
+
 ## adding the testbench content
 TB_content = ""
 TB_content += '`timescale 1us/1ns\n'
@@ -338,13 +377,26 @@ for port in module_ports:
     if module_ports[port]['size'] > 1:
         TB_content += '\t[{}:0]\t'.format(module_ports[port]['size'] - 1)
     elif module_ports[port]['size'] == 1:
-        TB_content += '\t\t'
+        TB_content += '\t\t\t'
     TB_content += port + '_tb;\n'   
 
+
+
+
+#adding the test vector
+total_input_size = 0
+for i in input_ports:
+    total_input_size += module_ports[i]['size']
+
+
+# TB_content += '\treg\t\t[{}:0]\ttest_vect [1000:0];\n'.format(total_input_size - 1) # we need to parameterize this using user input
+# TB_content += '\treg\t\t[31:0]\tvecnum, errors;\n'
 TB_content += '\n\n'
+
 # adding the clock generator
-TB_content += 'always #({})  clk_tb = ~clk_tb;\n'.format(clk_period/2)
-TB_content += '\n\n'
+if 'clk' in module_ports:
+    TB_content += 'always #({})  clk_tb = ~clk_tb;\n'.format(clk_period/2)
+    TB_content += '\n\n'
 
 i = 0
 # adding the DUT instantiation
@@ -358,5 +410,399 @@ for port in module_ports:
 
 TB_content += '\n\n'
 
+
+
+
+
+
+# Initial the clock, reset and the inputs
+TB_content += 'initial begin \n\t$dumpfile(\"'+ m.name +'.vcd\");\n\t$dumpvars;\n\n'
+# TB_content += '\t$readmemb("test.txt",test_vect);'
+# TB_content += '\tvecnum = 32\'d0; errors = 32\'d0;\n'   
+TB_content += '\tclk_tb = 1\'d0;\n\trst_tb = 1\'d1;\n'
+TB_content += '#{}\n'.format(0.2*clk_period)
+TB_content += '\trst_tb = 1\'d0;\n'
+TB_content += '#{}\n'.format(0.5*clk_period)
+TB_content += '\trst_tb = 1\'d1;\n\n'
+TB_content += ''
+
+
+for port in module_ports:
+    if module_ports[port]['dir'] == 'input' and port != 'clk' and port != 'rst':
+        TB_content += '\t' + port + '_tb = ' + str(module_ports[port]['size']) + '\'b0 ;\n'
+TB_content += '\n\n'
+# TB_content += '\trepeat(1000) @(negedge clk_tb) begin\n'       #1000 will be parameterized also according to test_vect
+# TB_content += '\t\t{'
+# for i in input_ports[:-1]:
+#     TB_content += i + '_tb, '
+# TB_content += i + '_tb'
+# TB_content += '} = test_vect[vecnum];\n'
+# TB_content += '\t\tvecnum = vecnum + 1;\n'
+# TB_content += '\tend'
+# TB_content += '\n\n'
+
+biggestSize = 1  #we check on the number of iterations using the max size of the input
+for i in module_ports:
+    
+    if biggestSize < pow(2,module_ports[i]['size']): 
+        biggestSize = pow(2,module_ports[i]['size'])
+iterations = min(biggestSize,30)
+
+
+TB_content += '\trepeat({}) @(negedge clk_tb) begin\n'.format(iterations)
+for i in input_ports:
+    TB_content += '\t\t' + i + '_tb = $random % {};\n'.format(pow(2,module_ports[i]['size']))
+TB_content += '\tend'
+TB_content += '\n\n'
+
+TB_content += '#100 $stop;'
+TB_content += '\n\nend\n\n\n\n'
+
+
+# initial block of the monitor system
+TB_content += 'initial begin \n'
+TB_content += '\t$monitor($time, \": ' 
+for i in input_ports:
+    TB_content += i + ' = %d; '
+for i in output_ports[:-1]:
+    TB_content += i + ' = %d; '
+TB_content += output_ports[-1] + ' = %d; '
+TB_content += '\"'
+
+for i in input_ports:
+    TB_content += ',' + i + '_tb '
+for i in output_ports:
+    TB_content += ',' + i + '_tb '
+TB_content += ');\n'
+TB_content += 'end\n'
+TB_content += '\n\n\n'
+TB_content += 'endmodule'
 print(TB_content)
+
+
+output_file = fname.replace('.v', '_tb.v') 
+with open(output_file, 'w') as f:
+        f.write(TB_content)
+
+
+
+# checking the continuous assignments
+all_assignments = {}
+for s in continuous_parameters:
+    if s['output'] in output_ports:     # first, check if the assignment is for an output port
+        all_assignments[s['output']] = [] #initialize a set whose key is the output name and it contains the input ports related to this output
+        if s['type'] == 'single':
+            if s['op1'] in internal_pins:   # if operand 1 is an internal signal, then we need to take its inputs 
+                for q in continuous_parameters: # look for the internal singal in the continuous assignments
+                    if s['op1'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                        if q['type'] == 'double conditional':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                            if q['condition'] in input_ports:
+                                all_assignments[s['output']].append(q['condition'])
+                for q in single_always_operations_list: # look for the internal singal in the always assignments
+                    if s['op1'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+            elif s['op1'] in input_ports:
+                all_assignments[s['output']].append(s['op1'])
+        elif s['type'] == 'double':
+            print(s['output'] + ' ' + s['type'])
+            if s['op1'] in internal_pins:   # if operand 1 is an internal signal, then we need to take its inputs 
+                for q in continuous_parameters: # look for the internal singal in the continuous assignments
+                    if s['op1'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                        if q['type'] == 'double conditional':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                            if q['condition'] in input_ports:
+                                all_assignments[s['output']].append(q['condition'])
+                for q in single_always_operations_list: # look for the internal singal in the always assignments
+                    if s['op1'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+            elif s['op1'] in input_ports:
+                all_assignments[s['output']].append(s['op1'])
+            if s['op2'] in internal_pins:   # if operand 1 is an internal signal, then we need to take its inputs 
+                for q in continuous_parameters: # look for the internal singal in the continuous assignments
+                    if s['op2'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                        if q['type'] == 'double conditional':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                            if q['condition'] in input_ports:
+                                all_assignments[s['output']].append(q['condition'])
+                for q in single_always_operations_list: # look for the internal singal in the continuous assignments
+                    if s['op2'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+            elif s['op2'] in input_ports:
+                all_assignments[s['output']].append(s['op2'])
+        elif s['type'] == 'double conditional':
+            if s['op1'] in internal_pins:   # if operand 1 is an internal signal, then we need to take its inputs 
+                for q in continuous_parameters: # look for the internal singal in the continuous assignments
+                    if s['op1'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                        if q['type'] == 'double conditional':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                            if q['condition'] in input_ports:
+                                all_assignments[s['output']].append(q['condition'])
+                for q in single_always_operations_list: # look for the internal singal in the always assignments
+                    if s['op1'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+            elif s['op1'] in input_ports:
+                all_assignments[s['output']].append(s['op1'])
+            if s['op2'] in internal_pins:   # if operand 1 is an internal signal, then we need to take its inputs 
+                for q in continuous_parameters: # look for the internal singal in the continuous assignments
+                    if s['op2'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                        if q['type'] == 'double conditional':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                            if q['condition'] in input_ports:
+                                all_assignments[s['output']].append(q['condition'])
+                for q in single_always_operations_list: # look for the internal singal in the continuous assignments
+                    if s['op2'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+            elif s['op2'] in input_ports:
+                all_assignments[s['output']].append(s['op2'])
+            if s['condition'] in internal_pins:   # if operand 1 is an internal signal, then we need to take its inputs 
+                for q in continuous_parameters: # look for the internal singal in the continuous assignments
+                    if s['condition'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                        if q['type'] == 'double conditional':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                            if q['condition'] in input_ports:
+                                all_assignments[s['output']].append(q['condition'])
+                for q in single_always_operations_list: # look for the internal singal in the continuous assignments
+                    if s['condition'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+            elif s['condition'] in input_ports:
+                all_assignments[s['output']].append(s['condition'])
+        # we need to remove the duplicate if exists
+        new_list = []
+        for i in all_assignments[s['output']]:
+            if i not in new_list:
+                new_list.append(i)
+        all_assignments[s['output']] = new_list
+
+
+
+
+
+for s in single_always_operations_list:
+    if s['output'] in output_ports:     # first, check if the assignment is for an output port
+        all_assignments[s['output']] = [] #initialize a set whose key is the output name and it contains the input ports related to this output
+        if s['type'] == 'single':
+            if s['op1'] in internal_pins:   # if operand 1 is an internal signal, then we need to take its inputs 
+                print(s['op1'])
+                for q in continuous_parameters: # look for the internal singal in the continuous assignments
+                    if s['op1'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                        if q['type'] == 'double conditional':
+                            print(q['type'])
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                            if q['condition'] in input_ports:
+                                all_assignments[s['output']].append(q['condition'])
+                for q in single_always_operations_list: # look for the internal singal in the always assignments
+                    if s['op1'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+            elif s['op1'] in input_ports:
+                all_assignments[s['output']].append(s['op1'])
+        elif s['type'] == 'double':
+            print(s['output'] + ' ' + s['type'] + ' ' + s['op1'] + ' ' + s['op2'])
+            if s['op1'] in internal_pins:   # if operand 1 is an internal signal, then we need to take its inputs 
+                for q in continuous_parameters: # look for the internal singal in the continuous assignments
+                    if s['op1'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                        if q['type'] == 'double conditional':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                            if q['condition'] in input_ports:
+                                all_assignments[s['output']].append(q['condition'])
+                for q in single_always_operations_list: # look for the internal singal in the always assignments
+                    if s['op1'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+            elif s['op1'] in input_ports:
+                all_assignments[s['output']].append(s['op1'])
+            if s['op2'] in internal_pins:   # if operand 1 is an internal signal, then we need to take its inputs 
+                print(s['output'] + ' ' + s['op2'])
+                for q in continuous_parameters: # look for the internal singal in the continuous assignments
+                    if s['op2'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                        if q['type'] == 'double conditional':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+                            if q['condition'] in input_ports:
+                                all_assignments[s['output']].append(q['condition'])
+                for q in single_always_operations_list: # look for the internal singal in the continuous assignments
+                    if s['op2'] in q['output']: # if it exists as an output, we take its inputs to the all_assignments[output]
+                        if q['type'] == 'single':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                        if q['type'] == 'double':
+                            if q['op1'] in input_ports:
+                                all_assignments[s['output']].append(q['op1'])
+                            if q['op2'] in input_ports:
+                                all_assignments[s['output']].append(q['op2'])
+            elif s['op2'] in input_ports:
+                all_assignments[s['output']].append(s['op2'])
+        # we need to remove the duplicate if exists
+        new_list = []
+        for i in all_assignments[s['output']]:
+            if i not in new_list:
+                new_list.append(i)
+        all_assignments[s['output']] = new_list
+
+
+
+
+print(all_assignments)
+
+
+
+#def get_input_from_internal_signals():
+
+
+
+#TB_content += 
+#print(TB_content)
 

@@ -5,21 +5,20 @@ module file #(
 )
 (
     input   wire    clk,rst,
-    input   wire    [7:0] data_in,
+    input   wire    [3:0] data_in,
     input   wire    a,
     input   wire    b,
-    output  reg     [7:0] data_out,
+    input   wire    x,
+    output  reg     [3:0] data_out,
     output  wire    out
 );
 
-localparam local = 'd5 ;
-wire [7:0] byte;
-wire ayhaga;
-reg [7:0] register;
-reg x;
-reg m;
+wire    [7:0]   byte;
+wire            ayhaga;
+reg     [7:0]   register;
+reg             m;
 
-assign out = a == b;
+assign out = ~ayhaga;
 assign ayhaga = x ? a : b;
 
 
@@ -27,20 +26,16 @@ always @(posedge clk, negedge rst) begin
     if (!rst)
         data_out <= 'd0;
     else 
-        data_out <= data_in + 5;
+        data_out <= data_in + register;
     end
 
-
-always @(*) begin
-    x = data_in[0];
-end
 
 always @(rst, clk, data_in) begin
     m = data_in[1];
 end
 
 always @(*) begin
-    case (param)
+    case (x)
         'd0:    register = data_in + 'd1;
         'd1:    register = ~data_in; 
         default: register = 'd0;
@@ -48,11 +43,11 @@ always @(*) begin
 end
 
 always @(*) begin
-    case (x)
-        'd00:    register = data_in + 'd1;
-        'd01:    register = 'd3;
-        'd10:    register = 'd5;
-        'd11:    register = ~data_in; 
+    case (byte)
+        'b00:    register =  a;
+        'b01:    register = 'd5;
+        'b10:    register = ayhaga;
+        'b11:    register = ~data_in; 
         default: register = 'd0;
     endcase
 end
