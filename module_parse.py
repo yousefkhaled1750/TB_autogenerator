@@ -466,10 +466,22 @@ for port in module_ports:
         if module_ports[port]['size'] in module_params:
             TB_content += '\t[' + module_ports[port]['size'] + '_tb - 1 : 0]\t'
         else: 
-            TB_content += '\t[{}:0]\t\t\t'.format(module_ports[port]['size'] - 1)
+            TB_content += '\t[{}:0]\t\t\t\t'.format(module_ports[port]['size'] - 1)
     elif module_ports[port]['size'] == 1:
-        TB_content += '\t\t\t\t\t'
+        TB_content += '\t\t\t\t\t\t'
     TB_content += port + '_tb;\n'   
+if choice == 'y':
+    for port in module_ports:
+        if module_ports[port]['dir'] == 'output':
+            TB_content += '\treg '
+            if module_ports[port]['size'] != 1:
+                if module_ports[port]['size'] in module_params:
+                    TB_content += '\t[' + module_ports[port]['size'] + '_tb - 1 : 0]\t'
+                else: 
+                    TB_content += '\t[{}:0]\t\t\t\t'.format(module_ports[port]['size'] - 1)
+            elif module_ports[port]['size'] == 1:
+                TB_content += '\t\t\t\t\t\t'
+            TB_content += port + '_exp;\n' 
 
 
 
@@ -536,10 +548,21 @@ TB_content += '\n\n'
 if choice == 'y':
     TB_content += '\trepeat({}) @(negedge clk_tb) begin\n'.format(line_count)       #1000 will be parameterized also according to test_vect
     TB_content += '\t\t{'
-    for i in input_ports[:-1]:
+    for i in input_ports:
         TB_content += i + '_tb, '
-    TB_content += input_ports[-1] + '_tb'
+    #TB_content += input_ports[-1] + '_tb'
+    for i in output_ports[:-1]:
+        TB_content += i + '_exp, '
+    TB_content += output_ports[-1] + '_exp'
     TB_content += '} = test_vect[vecnum];\n'
+    TB_content += '#{}\n'.format(clk_period)
+    TB_content += '\t\tif('
+    for i in output_ports[:-1]:
+        TB_content += i + '_exp == ' + i + '_tb &&'
+    TB_content += output_ports[-1] + '_exp == ' + output_ports[-1] + '_tb)\n'
+    TB_content += '\t\t\t$display("Successful Test Case!");\n'
+    TB_content += '\t\telse\n'
+    TB_content += '\t\t\t$display("Failed Test Case!");\n'
     TB_content += '\t\tvecnum = vecnum + 1;\n'
     TB_content += '\tend'
     TB_content += '\n\n'

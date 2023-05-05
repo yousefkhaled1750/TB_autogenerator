@@ -3,15 +3,18 @@ module file_tb ();
 	parameter	WIDTH_tb = 8;
 	parameter	par_tb = 3;
 	parameter	MUL_WIDTH_tb = 16;
-	reg 					clk_tb;
-	reg 					rst_tb;
+	reg 						clk_tb;
+	reg 						rst_tb;
 	reg 	[WIDTH_tb - 1 : 0]	data_in_tb;
-	reg 					a_tb;
-	reg 					b_tb;
-	reg 	[4:0]			x_tb;
+	reg 						a_tb;
+	reg 						b_tb;
+	reg 	[4:0]				x_tb;
 	wire 	[WIDTH_tb - 1 : 0]	data_out_tb;
-	wire 					out_tb;
-	wire 					d_tb;
+	wire 						out_tb;
+	wire 						d_tb;
+	reg 	[WIDTH_tb - 1 : 0]	data_out_exp;
+	reg 						out_exp;
+	reg 						d_exp;
 
 
 	reg		[14:0]	test_vect [9:0];
@@ -56,7 +59,12 @@ initial begin
 
 
 	repeat(10) @(negedge clk_tb) begin
-		{data_in_tb, a_tb, b_tb, x_tb} = test_vect[vecnum];
+		{data_in_tb, a_tb, b_tb, x_tb, data_out_exp, out_exp, d_exp} = test_vect[vecnum];
+#10
+		if(data_out_exp == data_out_tb &&out_exp == out_tb &&d_exp == d_tb)
+			$display("Successful Test Case!");
+		else
+			$display("Failed Test Case!");
 		vecnum = vecnum + 1;
 	end
 
