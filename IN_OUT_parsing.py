@@ -42,6 +42,7 @@ for line in file_code:
                 name = str(re.findall(r'\s*(.*),',s[-2]))[2:][:-2]
                 signal["name"] = name
                 signal["type"] = 'wire'
+                signal["size"] = int(1)
                 input_ports.append(signal)
         elif re.search(r'\s+reg\s',line):
             if re.search(r'\[',line):
