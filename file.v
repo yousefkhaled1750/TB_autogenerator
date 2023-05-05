@@ -10,7 +10,8 @@ module file #(
     input   wire    b,
     input   wire    x,
     output  reg     [3:0] data_out,
-    output  wire    out
+    output  wire    out,
+    output      reg     d
 );
 
 wire    [7:0]   byte;

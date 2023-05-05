@@ -60,6 +60,7 @@ for line in file_code:
                 name = str(re.findall(r'\s*(.*),',s[-2]))[2:][:-2]
                 signal["name"] = name
                 signal["type"] = 'reg'
+                signal["size"] = int(1)
                 input_ports.append(signal)
     elif re.search(r'^output\s|\s+output\s',line):
         if re.search(r'\s+wire\s',line):
@@ -78,9 +79,10 @@ for line in file_code:
                 output_ports.append(signal)
             else:
                 s = re.split(r'\s+',line)
-                name = str(re.findall((r'\w+,|\w+\)'),s[-2]))[2:][:-3]
+                name = str(re.findall(r'\w+',s[-2]))[2:][:-2]
                 signal["name"] = name
                 signal["type"] = 'wire'
+                signal["size"] = int(1)
                 output_ports.append(signal)
         elif re.search(r'\s+reg\s',line):
             if re.search(r'\[',line):
@@ -98,9 +100,10 @@ for line in file_code:
                 output_ports.append(signal)
             else:
                 s = re.split(r'\s+',line)
-                name = str(re.findall((r'\w+,|\w+\)'),s[-2]))[2:][:-3]
+                name = name = str(re.findall(r'\w+',s[-2]))[2:][:-2]
                 signal["name"] = name
                 signal["type"] = 'reg'
+                signal["size"] = int(1)
                 output_ports.append(signal)
         
 print('\n')
