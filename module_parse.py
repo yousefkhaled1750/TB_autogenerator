@@ -451,6 +451,11 @@ TB_content = ""
 TB_content += '`timescale 1us/1ns\n'
 TB_content += 'module ' + module_name + '_tb ();\n'
 
+# adding the TB parameters
+for param in parameters_dict:
+    print(param)
+    TB_content += '\tparameter\t'+param+'_tb = {};\n'.format(parameters_dict[param])
+
 # adding the TB header ports
 for port in module_ports:
     if module_ports[port]['dir'] == 'input':
@@ -459,7 +464,7 @@ for port in module_ports:
         TB_content += '\twire '
     if module_ports[port]['size'] != 1:
         if module_ports[port]['size'] in module_params:
-            TB_content += '\t[' + module_ports[port]['size'] + ' - 1 : 0]\t'
+            TB_content += '\t[' + module_ports[port]['size'] + '_tb - 1 : 0]\t'
         else: 
             TB_content += '\t[{}:0]\t\t\t'.format(module_ports[port]['size'] - 1)
     elif module_ports[port]['size'] == 1:
@@ -489,7 +494,14 @@ if 'clk' in module_ports:
 
 i = 0
 # adding the DUT instantiation
-TB_content += module_name + ' DUT(\n'
+TB_content += module_name + ' #(\n'
+for param in parameters_dict:
+    if i < len(module_params) - 1:
+        TB_content += '.'+param+'('+param+'_tb),\n'
+    else:
+        TB_content += '.'+param+'('+param+'_tb)\n) DUT (\n'
+    i += 1
+i = 0
 for port in module_ports:
     if i < len(module_ports) - 1:
         TB_content += '\t.'+port+'('+port+'_tb),\n'

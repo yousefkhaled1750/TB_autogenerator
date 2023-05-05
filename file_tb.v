@@ -1,12 +1,15 @@
 `timescale 1us/1ns
 module file_tb ();
+	parameter	WIDTH_tb = 8;
+	parameter	par_tb = 3;
+	parameter	MUL_WIDTH_tb = 16;
 	reg 					clk_tb;
 	reg 					rst_tb;
-	reg 	[WIDTH - 1 : 0]	data_in_tb;
+	reg 	[WIDTH_tb - 1 : 0]	data_in_tb;
 	reg 					a_tb;
 	reg 					b_tb;
 	reg 	[4:0]			x_tb;
-	wire 	[WIDTH - 1 : 0]	data_out_tb;
+	wire 	[WIDTH_tb - 1 : 0]	data_out_tb;
 	wire 					out_tb;
 	wire 					d_tb;
 
@@ -18,7 +21,11 @@ module file_tb ();
 always #(5.0)  clk_tb = ~clk_tb;
 
 
-file DUT(
+file #(
+.WIDTH(WIDTH_tb),
+.par(par_tb),
+.MUL_WIDTH(MUL_WIDTH_tb)
+) DUT (
 	.clk(clk_tb),
 	.rst(rst_tb),
 	.data_in(data_in_tb),

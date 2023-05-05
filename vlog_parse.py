@@ -169,6 +169,7 @@ for line in file_code:
         if(re.search("posedge|negedge",_str)):
            always["type"] = "sequential"
            always["clk"]  = re.findall(r'posedge\s(.*)\snegedge',_str)
+           #always["clk"]  = re.findall(r'posedge\s(\w+)[,\)]',_str)
            always["rst"]  = re.findall(r'negedge\s*(.*)',_str)
            always_parameters.append(always)
         else:
@@ -364,6 +365,13 @@ output_ports = [x for x in module_ports if module_ports[x]['dir'] == 'output']
 internal_pins = [x['name'] for x in internal_signal ]
 
 ## adding the testbench content
+refexists = False
+choice = input('Do you want to add a reference model? y/n')
+if choice == 'y':
+    refexists = True
+    refname = input('Enter the name of the reference model: ')
+    with open(refname, 'r') as fp:
+        line_count = len(fp.readlines())
 TB_content = ""
 TB_content += '`timescale 1us/1ns\n'
 TB_content += 'module ' + m.name + '_tb ();\n'
@@ -382,15 +390,15 @@ for port in module_ports:
 
 
 
+if choice == 'y':
+    #adding the test vector
+    total_input_size = 0
+    for i in input_ports:
+        total_input_size += module_ports[i]['size']
+    TB_content += '\treg\t\t[{}:0]\ttest_vect [1000:0];\n'.format(total_input_size - 1) # we need to parameterize this using user input
+    TB_content += '\treg\t\t[31:0]\tvecnum, errors;\n'
 
-#adding the test vector
-total_input_size = 0
-for i in input_ports:
-    total_input_size += module_ports[i]['size']
 
-
-# TB_content += '\treg\t\t[{}:0]\ttest_vect [1000:0];\n'.format(total_input_size - 1) # we need to parameterize this using user input
-# TB_content += '\treg\t\t[31:0]\tvecnum, errors;\n'
 TB_content += '\n\n'
 
 # adding the clock generator
@@ -417,8 +425,9 @@ TB_content += '\n\n'
 
 # Initial the clock, reset and the inputs
 TB_content += 'initial begin \n\t$dumpfile(\"'+ m.name +'.vcd\");\n\t$dumpvars;\n\n'
-# TB_content += '\t$readmemb("test.txt",test_vect);'
-# TB_content += '\tvecnum = 32\'d0; errors = 32\'d0;\n'   
+if choice == 'y':
+    TB_content += '\t$readmemb("' + refname + '",test_vect);'
+    TB_content += '\tvecnum = 32\'d0; errors = 32\'d0;\n'   
 TB_content += '\tclk_tb = 1\'d0;\n\trst_tb = 1\'d1;\n'
 TB_content += '#{}\n'.format(0.2*clk_period)
 TB_content += '\trst_tb = 1\'d0;\n'
@@ -431,15 +440,16 @@ for port in module_ports:
     if module_ports[port]['dir'] == 'input' and port != 'clk' and port != 'rst':
         TB_content += '\t' + port + '_tb = ' + str(module_ports[port]['size']) + '\'b0 ;\n'
 TB_content += '\n\n'
-# TB_content += '\trepeat(1000) @(negedge clk_tb) begin\n'       #1000 will be parameterized also according to test_vect
-# TB_content += '\t\t{'
-# for i in input_ports[:-1]:
-#     TB_content += i + '_tb, '
-# TB_content += i + '_tb'
-# TB_content += '} = test_vect[vecnum];\n'
-# TB_content += '\t\tvecnum = vecnum + 1;\n'
-# TB_content += '\tend'
-# TB_content += '\n\n'
+if choice == 'y':
+    TB_content += '\trepeat({}) @(negedge clk_tb) begin\n'.format(line_count)       #1000 will be parameterized also according to test_vect
+    TB_content += '\t\t{'
+    for i in input_ports[:-1]:
+        TB_content += i + '_tb, '
+    TB_content += i + '_tb'
+    TB_content += '} = test_vect[vecnum];\n'
+    TB_content += '\t\tvecnum = vecnum + 1;\n'
+    TB_content += '\tend'
+    TB_content += '\n\n'
 
 biggestSize = 1  #we check on the number of iterations using the max size of the input
 for i in module_ports:
@@ -490,7 +500,7 @@ with open(output_file, 'w') as f:
 all_assignments = {}
 for s in continuous_parameters:
     if s['output'] in output_ports:     # first, check if the assignment is for an output port
-        all_assignments[s['output']] = [] #initialize a set whose key is the output name and it contains the input ports related to this output
+        all_assignments[s['output']] = [] #initialize a list whose key is the output name and it contains the input ports related to this output
         if s['type'] == 'single':
             if s['op1'] in internal_pins:   # if operand 1 is an internal signal, then we need to take its inputs 
                 for q in continuous_parameters: # look for the internal singal in the continuous assignments
