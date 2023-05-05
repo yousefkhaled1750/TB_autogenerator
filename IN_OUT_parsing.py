@@ -28,7 +28,7 @@ for line in file_code:
         if re.search(r'\s+wire\s',line):
             if re.search(r'\[',line):
                 s = re.split(r'\[|\]',line)
-                name = str(re.findall(r'\s*(.*)\s*,',s[2]))[2:][:-2]
+                name = str(re.findall(r'\w+',s[2]))[2:][:-2]
                 if re.search(r'^[A-Za-z]\w*-',s[1]):
                     size = str(re.findall((r'(.*)-'),s[1]))[2:][:-2]
                 else:
@@ -38,8 +38,8 @@ for line in file_code:
                 signal["size"] = size         
                 input_ports.append(signal)
             else:
-                s = re.split(r'\s+',line)
-                name = str(re.findall(r'\s*(.*),',s[-2]))[2:][:-2]
+                s = re.split(r'\s+wire\s',line)
+                name = str(re.findall(r'\w+',s[1]))[2:][:-2]
                 signal["name"] = name
                 signal["type"] = 'wire'
                 signal["size"] = int(1)
@@ -47,7 +47,7 @@ for line in file_code:
         elif re.search(r'\s+reg\s',line):
             if re.search(r'\[',line):
                 s = re.split(r'\[|\]',line)
-                name = str(re.findall(r'\s*(.*)\s*,',s[2]))[2:][:-2]
+                name = str(re.findall(r'\w+',s[2]))[2:][:-2]
                 if re.search(r'^[A-Za-z]\w*-',s[1]):
                     size=str(re.findall((r'(.*)-'),s[1]))
                 else:
@@ -57,19 +57,38 @@ for line in file_code:
                 signal["size"] = size         
                 input_ports.append(signal)
             else:
-                s = re.split(r'\s+',line)
-                name = str(re.findall(r'\s*(.*),',s[-2]))[2:][:-2]
+                #s = re.split(r'\s+',line)
+                #name = s[s.index('reg')+1]
+                s = re.split(r'\s+reg\s',line)
+                name = str(re.findall(r'\w+',s[1]))[2:][:-2]
                 signal["name"] = name
                 signal["type"] = 'reg'
                 signal["size"] = int(1)
-                input_ports.append(signal)
+                input_ports.append(signal)   
+        else:
+            if re.search(r'\[',line):
+                s = re.split(r'\[|\]',line)
+                #name = str(re.findall((r'\w+,|\w+\)'),s[2]))[2:][:-3]
+                name = str(re.findall(r'\w+',s[2]))[2:][:-2]
+                if re.search(r'^[A-Za-z]\w*-',s[1]):
+                    size=str(re.findall((r'(.*)-'),s[1]))
+                else:
+                    size = int(str(re.findall(r'([0-9]*).*:',s[1]))[2:][:-2]) - int(str(re.findall(r'.*:\s*([0-9]*)\s*',s[1]))[2:][:-2]) + 1
+            else:
+                s = re.split(r'\s+input\s',line)
+                name = str(re.findall(r'\w+',s[1]))[2:][:-2]
+                size = int(1)
+                
+            signal["name"] = name
+            signal["type"] = 'wire'
+            signal["size"] = size
+            input_ports.append(signal)
     elif re.search(r'^output\s|\s+output\s',line):
         if re.search(r'\s+wire\s',line):
             if re.search(r'\[',line):
                 s = re.split(r'\[|\]',line)
-                name = str(re.findall((r'\w+,|\w+\)'),s[2]))[2:][:-3]
-                #print(str(re.findall(r'([0-9]*).*:',s[1]))[2:][:-2])
-                #print(str(re.findall(r'.*:\s*([0-9]*)\s*',s[1])))
+                #name = str(re.findall((r'\w+,|\w+\)'),s[2]))[2:][:-3]
+                name = str(re.findall(r'\w+',s[2]))[2:][:-2]
                 if re.search(r'^[A-Za-z]\w*-',s[1]):
                     size=str(re.findall((r'(.*)-'),s[1]))
                 else:
@@ -79,8 +98,10 @@ for line in file_code:
                 signal["size"] = size         
                 output_ports.append(signal)
             else:
-                s = re.split(r'\s+',line)
-                name = str(re.findall(r'\w+',s[-2]))[2:][:-2]
+                #s = re.split(r'\s+',line)
+                #name = s[s.index('wire')+1]
+                s = re.split(r'\s+wire\s',line)
+                name = str(re.findall(r'\w+',s[1]))[2:][:-2]
                 signal["name"] = name
                 signal["type"] = 'wire'
                 signal["size"] = int(1)
@@ -88,9 +109,8 @@ for line in file_code:
         elif re.search(r'\s+reg\s',line):
             if re.search(r'\[',line):
                 s = re.split(r'\[|\]',line)
-                name = str(re.findall((r'\w+,|\w+\)'),s[2]))[2:][:-3]
-                #print(str(re.findall(r'([0-9]*).*:',s[1]))[2:][:-2])
-                #print(str(re.findall(r'.*:\s*([0-9]*)\s*',s[1])))
+                #name = str(re.findall((r'\w+,|\w+\)'),s[2]))[2:][:-3]
+                name = str(re.findall(r'\w+',s[2]))[2:][:-2]
                 if re.search(r'^[A-Za-z]\w*-',s[1]):
                     size=str(re.findall((r'(.*)-'),s[1]))
                 else:
@@ -100,13 +120,32 @@ for line in file_code:
                 signal["size"] = size         
                 output_ports.append(signal)
             else:
-                s = re.split(r'\s+',line)
-                name = name = str(re.findall(r'\w+',s[-2]))[2:][:-2]
+                #s = re.split(r'\s+',line)
+                #name = s[s.index('reg')+1]
+                s = re.split(r'\s+reg\s',line)
+                name = str(re.findall(r'\w+',s[1]))[2:][:-2]
                 signal["name"] = name
                 signal["type"] = 'reg'
                 signal["size"] = int(1)
                 output_ports.append(signal)
-        
+        else:
+            if re.search(r'\[',line):
+                s = re.split(r'\[|\]',line)
+                #name = str(re.findall((r'\w+,|\w+\)'),s[2]))[2:][:-3]
+                name = str(re.findall(r'\w+',s[2]))[2:][:-2]
+                if re.search(r'^[A-Za-z]\w*-',s[1]):
+                    size=str(re.findall((r'(.*)-'),s[1]))
+                else:
+                    size = int(str(re.findall(r'([0-9]*).*:',s[1]))[2:][:-2]) - int(str(re.findall(r'.*:\s*([0-9]*)\s*',s[1]))[2:][:-2]) + 1
+            else:
+                s = re.split(r'\s+output\s',line)
+                name = str(re.findall(r'\w+',s[1]))[2:][:-2]
+                size = int(1)
+                
+            signal["name"] = name
+            signal["type"] = 'wire'
+            signal["size"] = size
+            output_ports.append(signal)
 print('\n')
 print(input_ports)
 print('\n\n')

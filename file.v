@@ -12,7 +12,8 @@ module file #(
     input   wire   [4:0] x,
     output  wire     [WIDTH-1:0] data_out,
     output  wire    out,
-    output      reg     d
+    output             pp,
+    output      reg        d
 );
 
 wire    [7:0]   byte;
