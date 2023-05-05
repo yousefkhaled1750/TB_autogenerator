@@ -4,14 +4,17 @@ module file #(
     parameter MUL_WIDTH = WIDTH*2
 )
 (
-    input   wire    clk,rst,
-    input   wire    [3:0] data_in,
-    input   wire    a,
-    input   wire    b,
-    input   wire    x,
-    output  reg     [3:0] data_out,
+    input       wire    clk    ,rst      ,
+    input       wire       [3:0] data_in    ,    rst    ,
+    input         reg               k      ,
+    input   wire     a         ,
+    input   wire    b       ,
+    input   wire    x        ,
+    input             m    ,
+    output  reg     [3:0] data_out       ,
     output  wire    out,
-    output      reg     d
+    output             pp,
+    output      reg        d
 );
 
 wire    [7:0]   byte;
