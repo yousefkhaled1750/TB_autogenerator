@@ -63,8 +63,10 @@ initial begin
 #10
 		if(data_out_exp == data_out_tb &&out_exp == out_tb &&d_exp == d_tb)
 			$display("Successful Test Case!");
-		else
+		else begin
 			$display("Failed Test Case!");
+			error = error + 1;
+		end
 		vecnum = vecnum + 1;
 	end
 

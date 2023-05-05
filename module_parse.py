@@ -4,7 +4,6 @@ fname = input("Enter the name of the file: ")
 parameters    = []
 input_ports   = []
 output_ports  = []
-
 def get_module_name(fname):
     file_code = open(fname, 'rt')
     for line in file_code:
@@ -19,7 +18,7 @@ def get_module_paramters(fname):
         if re.search(r'^parameter\s|\s+parameter\s',line):
             s = re.split(r'\s',line)
             name_param = str(re.findall(r'\s*\w+\s*',s[-4]))[2:][:-2]   
-            #print(name_param)
+            print(name_param)
             parameters.append(name_param)
     return parameters
 
@@ -31,7 +30,7 @@ def get_module_ports(fname):
             if re.search(r'\s+wire\s',line):
                 if re.search(r'\[',line):
                     s = re.split(r'\[|\]',line)
-                    name = str(re.findall(r'\s*(.*)\s*,',s[2]))[2:][:-2]
+                    name = str(re.findall(r'\w+',s[2]))[2:][:-2]
                     if re.search(r'^[A-Za-z]\w*-',s[1]):
                         size = str(re.findall((r'(.*)-'),s[1]))[2:][:-2]
                     else:
@@ -41,8 +40,8 @@ def get_module_ports(fname):
                     signal["size"] = size         
                     input_ports.append(signal)
                 else:
-                    s = re.split(r'\s+',line)
-                    name = str(re.findall(r'\s*(.*),',s[-2]))[2:][:-2]
+                    s = re.split(r'\s+wire\s',line)
+                    name = str(re.findall(r'\w+',s[1]))[2:][:-2]
                     signal["name"] = name
                     signal["type"] = 'wire'
                     signal["size"] = int(1)
@@ -50,9 +49,9 @@ def get_module_ports(fname):
             elif re.search(r'\s+reg\s',line):
                 if re.search(r'\[',line):
                     s = re.split(r'\[|\]',line)
-                    name = str(re.findall(r'\s*(.*)\s*,',s[2]))[2:][:-2]
+                    name = str(re.findall(r'\w+',s[2]))[2:][:-2]
                     if re.search(r'^[A-Za-z]\w*-',s[1]):
-                        size = str(re.findall((r'(.*)-'),s[1]))[2:][:-2]
+                        size=str(re.findall((r'(.*)-'),s[1]))[2:][:-2]
                     else:
                         size = int(str(re.findall(r'([0-9]*).*:',s[1]))[2:][:-2]) - int(str(re.findall(r'.*:\s*([0-9]*)\s*',s[1]))[2:][:-2]) + 1
                     signal["name"] = name
@@ -60,21 +59,40 @@ def get_module_ports(fname):
                     signal["size"] = size         
                     input_ports.append(signal)
                 else:
-                    s = re.split(r'\s+',line)
-                    name = str(re.findall(r'\s*(.*),',s[-2]))[2:][:-2]
+                    #s = re.split(r'\s+',line)
+                    #name = s[s.index('reg')+1]
+                    s = re.split(r'\s+reg\s',line)
+                    name = str(re.findall(r'\w+',s[1]))[2:][:-2]
                     signal["name"] = name
                     signal["type"] = 'reg'
                     signal["size"] = int(1)
-                    input_ports.append(signal)
+                    input_ports.append(signal)   
+            else:
+                if re.search(r'\[',line):
+                    s = re.split(r'\[|\]',line)
+                    #name = str(re.findall((r'\w+,|\w+\)'),s[2]))[2:][:-3]
+                    name = str(re.findall(r'\w+',s[2]))[2:][:-2]
+                    if re.search(r'^[A-Za-z]\w*-',s[1]):
+                        size=str(re.findall((r'(.*)-'),s[1]))[2:][:-2]
+                    else:
+                        size = int(str(re.findall(r'([0-9]*).*:',s[1]))[2:][:-2]) - int(str(re.findall(r'.*:\s*([0-9]*)\s*',s[1]))[2:][:-2]) + 1
+                else:
+                    s = re.split(r'\s+input\s',line)
+                    name = str(re.findall(r'\w+',s[1]))[2:][:-2]
+                    size = int(1)
+
+                signal["name"] = name
+                signal["type"] = 'wire'
+                signal["size"] = size
+                input_ports.append(signal)
         elif re.search(r'^output\s|\s+output\s',line):
             if re.search(r'\s+wire\s',line):
                 if re.search(r'\[',line):
                     s = re.split(r'\[|\]',line)
-                    name = str(re.findall((r'\w+,|\w+\)'),s[2]))[2:][:-3]
-                    #print(str(re.findall(r'([0-9]*).*:',s[1]))[2:][:-2])
-                    #print(str(re.findall(r'.*:\s*([0-9]*)\s*',s[1])))
+                    #name = str(re.findall((r'\w+,|\w+\)'),s[2]))[2:][:-3]
+                    name = str(re.findall(r'\w+',s[2]))[2:][:-2]
                     if re.search(r'^[A-Za-z]\w*-',s[1]):
-                        size = str(re.findall((r'(.*)-'),s[1]))[2:][:-2]
+                        size=str(re.findall((r'(.*)-'),s[1]))[2:][:-2]
                     else:
                         size = int(str(re.findall(r'([0-9]*).*:',s[1]))[2:][:-2]) - int(str(re.findall(r'.*:\s*([0-9]*)\s*',s[1]))[2:][:-2]) + 1
                     signal["name"] = name
@@ -82,8 +100,10 @@ def get_module_ports(fname):
                     signal["size"] = size         
                     output_ports.append(signal)
                 else:
-                    s = re.split(r'\s+',line)
-                    name = str(re.findall(r'\w+',s[-2]))[2:][:-2]
+                    #s = re.split(r'\s+',line)
+                    #name = s[s.index('wire')+1]
+                    s = re.split(r'\s+wire\s',line)
+                    name = str(re.findall(r'\w+',s[1]))[2:][:-2]
                     signal["name"] = name
                     signal["type"] = 'wire'
                     signal["size"] = int(1)
@@ -91,11 +111,10 @@ def get_module_ports(fname):
             elif re.search(r'\s+reg\s',line):
                 if re.search(r'\[',line):
                     s = re.split(r'\[|\]',line)
-                    name = str(re.findall((r'\w+,|\w+\)'),s[2]))[2:][:-3]
-                    #print(str(re.findall(r'([0-9]*).*:',s[1]))[2:][:-2])
-                    #print(str(re.findall(r'.*:\s*([0-9]*)\s*',s[1])))
+                    #name = str(re.findall((r'\w+,|\w+\)'),s[2]))[2:][:-3]
+                    name = str(re.findall(r'\w+',s[2]))[2:][:-2]
                     if re.search(r'^[A-Za-z]\w*-',s[1]):
-                        size = str(re.findall((r'(.*)-'),s[1]))[2:][:-2]
+                        size=str(re.findall((r'(.*)-'),s[1]))[2:][:-2]
                     else:
                         size = int(str(re.findall(r'([0-9]*).*:',s[1]))[2:][:-2]) - int(str(re.findall(r'.*:\s*([0-9]*)\s*',s[1]))[2:][:-2]) + 1
                     signal["name"] = name
@@ -103,12 +122,32 @@ def get_module_ports(fname):
                     signal["size"] = size         
                     output_ports.append(signal)
                 else:
-                    s = re.split(r'\s+',line)
-                    name = name = str(re.findall(r'\w+',s[-2]))[2:][:-2]
+                    #s = re.split(r'\s+',line)
+                    #name = s[s.index('reg')+1]
+                    s = re.split(r'\s+reg\s',line)
+                    name = str(re.findall(r'\w+',s[1]))[2:][:-2]
                     signal["name"] = name
                     signal["type"] = 'reg'
                     signal["size"] = int(1)
                     output_ports.append(signal)
+            else:
+                if re.search(r'\[',line):
+                    s = re.split(r'\[|\]',line)
+                    #name = str(re.findall((r'\w+,|\w+\)'),s[2]))[2:][:-3]
+                    name = str(re.findall(r'\w+',s[2]))[2:][:-2]
+                    if re.search(r'^[A-Za-z]\w*-',s[1]):
+                        size=str(re.findall((r'(.*)-'),s[1]))[2:][:-2]
+                    else:
+                        size = int(str(re.findall(r'([0-9]*).*:',s[1]))[2:][:-2]) - int(str(re.findall(r'.*:\s*([0-9]*)\s*',s[1]))[2:][:-2]) + 1
+                else:
+                    s = re.split(r'\s+output\s',line)
+                    name = str(re.findall(r'\w+',s[1]))[2:][:-2]
+                    size = int(1)
+
+                signal["name"] = name
+                signal["type"] = 'wire'
+                signal["size"] = size
+                output_ports.append(signal)
 
     module_ports = {}
     for p in input_ports:
@@ -470,6 +509,7 @@ for port in module_ports:
     elif module_ports[port]['size'] == 1:
         TB_content += '\t\t\t\t\t\t'
     TB_content += port + '_tb;\n'   
+    
 if choice == 'y':
     for port in module_ports:
         if module_ports[port]['dir'] == 'output':
@@ -532,21 +572,28 @@ TB_content += '\n\n'
 TB_content += 'initial begin \n\t$dumpfile(\"'+ module_name +'.vcd\");\n\t$dumpvars;\n\n'
 if choice == 'y':
     TB_content += '\t$readmemb("' + refname + '",test_vect);'
-    TB_content += '\tvecnum = 32\'d0; errors = 32\'d0;\n'   
-TB_content += '\tclk_tb = 1\'d0;\n\trst_tb = 1\'d1;\n'
-TB_content += '#{}\n'.format(0.2*clk_period)
-TB_content += '\trst_tb = 1\'d0;\n'
-TB_content += '#{}\n'.format(0.5*clk_period)
-TB_content += '\trst_tb = 1\'d1;\n\n'
-TB_content += ''
+    TB_content += '\tvecnum = 32\'d0; errors = 32\'d0;\n'
+if 'clk' in module_ports:   
+    TB_content += '\tclk_tb = 1\'d0;\n\trst_tb = 1\'d1;\n'
+    TB_content += '#{}\n'.format(0.2*clk_period)
+    TB_content += '\trst_tb = 1\'d0;\n'
+    TB_content += '#{}\n'.format(0.5*clk_period)
+    TB_content += '\trst_tb = 1\'d1;\n\n'
+    TB_content += ''
 
 
 for port in module_ports:
     if module_ports[port]['dir'] == 'input' and port != 'clk' and port != 'rst':
-        TB_content += '\t' + port + '_tb = ' + str(module_ports[port]['size']) + '\'b0 ;\n'
+        if module_ports[port]['size'] in module_params:
+            TB_content += '\t' + port + '_tb = ' + '\'b0 ;\n'    
+        else:
+            TB_content += '\t' + port + '_tb = ' + str(module_ports[port]['size']) + '\'b0 ;\n'
 TB_content += '\n\n'
 if choice == 'y':
-    TB_content += '\trepeat({}) @(negedge clk_tb) begin\n'.format(line_count)       #1000 will be parameterized also according to test_vect
+    if 'clk' in module_ports:  
+        TB_content += '\trepeat({}) @(negedge clk_tb) begin\n'.format(line_count)       #1000 will be parameterized also according to test_vect
+    else:
+        TB_content += '\trepeat({}) begin\n'.format(line_count)
     TB_content += '\t\t{'
     for i in input_ports:
         TB_content += i + '_tb, '
@@ -561,8 +608,9 @@ if choice == 'y':
         TB_content += i + '_exp == ' + i + '_tb &&'
     TB_content += output_ports[-1] + '_exp == ' + output_ports[-1] + '_tb)\n'
     TB_content += '\t\t\t$display("Successful Test Case!");\n'
-    TB_content += '\t\telse\n'
+    TB_content += '\t\telse begin\n'
     TB_content += '\t\t\t$display("Failed Test Case!");\n'
+    TB_content += '\t\t\terror = error + 1;\n\t\tend\n'
     TB_content += '\t\tvecnum = vecnum + 1;\n'
     TB_content += '\tend'
     TB_content += '\n\n'
@@ -585,7 +633,10 @@ for i in module_ports_size:
 iterations = min(biggestSize,30)
 
 
-TB_content += '\trepeat({}) @(negedge clk_tb) begin\n'.format(iterations)
+if 'clk' in module_ports:  
+    TB_content += '\trepeat({}) @(negedge clk_tb) begin\n'.format(iterations)       #1000 will be parameterized also according to test_vect
+else:
+    TB_content += '\trepeat({}) begin\n'.format(iterations)
 for i in input_ports:
     TB_content += '\t\t' + i + '_tb = $random % {};\n'.format(pow(2,module_ports_size[i]))
 TB_content += '\tend'
@@ -622,5 +673,7 @@ with open(output_file, 'w') as f:
 
 
 
+
+    
 
     
