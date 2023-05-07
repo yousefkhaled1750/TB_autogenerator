@@ -352,37 +352,12 @@ for line in file_code:
                     always_operation_dict['op1'] = s[3][:-1]
                     always_operation_dict['operation'] = 'nop'
                 single_always_operations_list.append(always_operation_dict)
-            # elif len(s) == 8:                 # case statement with 2 operands
-            #     always_operation_dict['type'] = 'double'
-            #     always_operation_dict['output'] = s[2] 
-            #     always_operation_dict['assign'] = s[3]
-            #     always_operation_dict['op1'] = s[4]
-            #     always_operation_dict['op2'] = s[6][:-1]
-            #     always_operation_dict['operation'] = s[5]
-            #     single_always_operations_list.append(always_operation_dict)
-            # elif len(s) == 6:   #case statement with 1 operand
-            #     always_operation_dict['type'] = 'single'
-            #     if re.search('~[&|^]',s[4]):    # if it contains negating operator
-            #         always_operation_dict['output'] = s[2] 
-            #         always_operation_dict['assign'] = s[3]
-            #         always_operation_dict['op1'] = s[4][2:][:-1]
-            #         always_operation_dict['operation'] = s[4][:2]
-            #     elif re.search('~',s[4]):
-            #         always_operation_dict['output'] = s[2]
-            #         always_operation_dict['assign'] = s[3] 
-            #         always_operation_dict['op1'] = s[4][1:][:-1]
-            #         always_operation_dict['operation'] = s[4][0]
-            #     else:
-            #         always_operation_dict['output'] = s[2]
-            #         always_operation_dict['assign'] = s[3] 
-            #         always_operation_dict['op1'] = s[4][:-1]
-            #         always_operation_dict['operation'] = 'nop'
-            #     single_always_operations_list.append(always_operation_dict)
+            
                 
                 
             
 print("****************************************************************always operations****************************************************************")
-print(single_always_operations_list) 
+print(always_operations_list) 
 print('\n')
 print("****************************************************************always locations****************************************************************")
 print(always_locations)
@@ -986,6 +961,35 @@ for i in continuous_parameters:
 
     TB_content += '\n'
 
+
+# get the always assignment directed test
+TB_content += '// parsing the always assignments\n'
+for j in always_operations_list:
+  for i in j:
+    if i['op1'] in input_ports:
+        op1_value = random.randint(0,pow(2,module_ports_size[i['op1']]-1))
+        if i['op1'][0] == '~':
+            TB_content += '\t' + i['op1'][1:] + '_tb = ' + str(op1_value) + ';'
+        else:
+            TB_content += '\t' + i['op1'] + '_tb = ' + str(op1_value) + ';'
+    elif i['op1'] in output_ports:
+        TB_content += '\t initial_state = ' + i['op1'] + '_tb;'
+    if i['type'] == 'double':
+        if i['op2'] in input_ports:
+            op2_value = random.randint(0,pow(2,module_ports_size[i['op2']]-1))
+            TB_content += '\t' + i['op2'] + '_tb = ' + str(op2_value) + ';'
+    TB_content += '\n#1\n'
+    TB_content += '\tif(' + i['output'] + '_tb == ('
+    if i['op1'] in input_ports:
+        TB_content += i['op1'] + '_tb '
+    elif i['op1'] in output_ports:
+        TB_content += 'initial_state '
+    if i['type'] == 'double':
+        TB_content += i['operation'] + ' ' + i['op2']+ '_tb'
+    TB_content += '))\n\t\t$display("Successful Test!");\n'
+    TB_content += '\telse\n\t\t$display("Failed Test!");\n'
+    TB_content += '\n'
+TB_content += '\n'
 
 if choice == 'y':
     if 'clk' in module_ports:  

@@ -74,19 +74,35 @@ initial begin
 
 
 // parsing the continuous assignments
-	comb_in_tb = 58;	comb_add_tb = 81;
+	comb_in_tb = 6;	comb_add_tb = 34;
 #1
 	if(comb_out_tb == (comb_in_tb + comb_add_tb))
 		$display("Successful Test!");
 	else
 		$display("Failed Test!");
 
-	sel_tb = 1; 	b_tb = 1;
+	sel_tb = 1; 	b_tb = 0;
 #1
 	if(c_tb == (b_tb ))
 		$display("Successful Test!");
 	else
 		$display("Failed Test!");
+
+// parsing the always assignments
+	a_tb = 86;
+#1
+	if(out_tb == (a_tb ))
+		$display("Successful Test!");
+	else
+		$display("Failed Test!");
+
+	a_tb = 75;
+#1
+	if(out_tb == (a_tb ))
+		$display("Successful Test!");
+	else
+		$display("Failed Test!");
+
 
 	repeat(30) @(negedge clk_tb) begin
 	#1
