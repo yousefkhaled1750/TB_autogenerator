@@ -307,6 +307,8 @@ line_no = 0
 file_code = open(fname, 'rt')
 for line in file_code:
     line_no = line_no + 1
+    if re.search(r'if',line) or re.search(r'if',line):
+        continue
     if re.search(r'always',line):
         in_always = True
         always_no = always_no + 1
@@ -349,32 +351,32 @@ for line in file_code:
                     always_operation_dict['op1'] = s[3][:-1]
                     always_operation_dict['operation'] = 'nop'
                 single_always_operations_list.append(always_operation_dict)
-            elif len(s) == 8:                 # case statement with 2 operands
-                always_operation_dict['type'] = 'double'
-                always_operation_dict['output'] = s[2] 
-                always_operation_dict['assign'] = s[3]
-                always_operation_dict['op1'] = s[4]
-                always_operation_dict['op2'] = s[6][:-1]
-                always_operation_dict['operation'] = s[5]
-                single_always_operations_list.append(always_operation_dict)
-            elif len(s) == 6:   #case statement with 1 operand
-                always_operation_dict['type'] = 'single'
-                if re.search('~[&|^]',s[4]):    # if it contains negating operator
-                    always_operation_dict['output'] = s[2] 
-                    always_operation_dict['assign'] = s[3]
-                    always_operation_dict['op1'] = s[4][2:][:-1]
-                    always_operation_dict['operation'] = s[4][:2]
-                elif re.search('~',s[4]):
-                    always_operation_dict['output'] = s[2]
-                    always_operation_dict['assign'] = s[3] 
-                    always_operation_dict['op1'] = s[4][1:][:-1]
-                    always_operation_dict['operation'] = s[4][0]
-                else:
-                    always_operation_dict['output'] = s[2]
-                    always_operation_dict['assign'] = s[3] 
-                    always_operation_dict['op1'] = s[4][:-1]
-                    always_operation_dict['operation'] = 'nop'
-                single_always_operations_list.append(always_operation_dict)
+            # elif len(s) == 8:                 # case statement with 2 operands
+            #     always_operation_dict['type'] = 'double'
+            #     always_operation_dict['output'] = s[2] 
+            #     always_operation_dict['assign'] = s[3]
+            #     always_operation_dict['op1'] = s[4]
+            #     always_operation_dict['op2'] = s[6][:-1]
+            #     always_operation_dict['operation'] = s[5]
+            #     single_always_operations_list.append(always_operation_dict)
+            # elif len(s) == 6:   #case statement with 1 operand
+            #     always_operation_dict['type'] = 'single'
+            #     if re.search('~[&|^]',s[4]):    # if it contains negating operator
+            #         always_operation_dict['output'] = s[2] 
+            #         always_operation_dict['assign'] = s[3]
+            #         always_operation_dict['op1'] = s[4][2:][:-1]
+            #         always_operation_dict['operation'] = s[4][:2]
+            #     elif re.search('~',s[4]):
+            #         always_operation_dict['output'] = s[2]
+            #         always_operation_dict['assign'] = s[3] 
+            #         always_operation_dict['op1'] = s[4][1:][:-1]
+            #         always_operation_dict['operation'] = s[4][0]
+            #     else:
+            #         always_operation_dict['output'] = s[2]
+            #         always_operation_dict['assign'] = s[3] 
+            #         always_operation_dict['op1'] = s[4][:-1]
+            #         always_operation_dict['operation'] = 'nop'
+            #     single_always_operations_list.append(always_operation_dict)
                 
                 
             
@@ -467,132 +469,157 @@ print("****************************************************************case loca
 print(case_locations)
 print('\n\n')
 
+## parsing if statement
+if_no = 0
+line_no = 0
+num_conditions = 0
+else_if_counter = 0
+in_if = False
+if_locations = []
+if_locations_dict = {}
+if_dict = {}
+if_list = []
+if_operations_dict = {}
+if_operations_list = []
+
+file_code = open(fname, 'rt')
+for line in file_code:
+    line_no = line_no + 1
+    if re.search(r'\W\s+if\s*',line) and not re.search(r'else',line):
+        if_no = if_no + 1
+        num_conditions = num_conditions + 1
+        if_locations_dict = {}
+        if_locations_dict['if_no'] = if_no
+        if_locations_dict['start_line'] = line_no
+        in_if = True
+        if_dict = {}
+        if_dict['if_no'] = if_no
+        print(line)
+        if_dict['if_condition'] = re.findall(r'if\s*\(\s*(.*)\s*\)',line)[0]
+        print(if_dict['if_condition'])
+        s = re.findall(r'\s*if\s\(.*\)\s*(.*);',line)
+        #print('printing s')
+        print(s)
+        s = re.split(r' ',s[0])
+        print(s)
+        if_operation_dict = {}
+        #if_operation_dict['if_condition'] = re.findall(r'if\s*\(\s*(.*)\s*\)',line)[0]
+        if_operation_dict['outout'] = s[0]
+        if len(s) == 5:                 # 2 operands operation
+            if_operation_dict['condition'] = re.findall(r'if\s*\(\s*(.*)\s*\)',line) 
+            if_operation_dict['type'] = 'double'
+            if_operation_dict['output'] = s[0] 
+            if_operation_dict['assign'] = s[1]
+            if_operation_dict['op1'] = s[2]
+            if_operation_dict['op2'] = s[5]
+            if_operation_dict['operation'] = s[4]
+        elif len(s) == 3:                     # 1 operand operation (! ~ & | ^ ~& ~| ~^)
+            if_operation_dict['type'] = 'single'
+            if re.search('~[&|^]',s[2]):    # if it contains negating operator
+                if_operation_dict['output'] = s[0] 
+                if_operation_dict['assign'] = s[1]
+                if_operation_dict['op1'] = s[2][2:]
+                if_operation_dict['operation'] = s[2][:2]
+            elif re.search('~',s[2]):
+                if_operation_dict['output'] = s[0]
+                if_operation_dict['assign'] = s[1] 
+                if_operation_dict['op1'] = s[2][1:]
+                if_operation_dict['operation'] = s[2][0]
+            else:
+                if_operation_dict['output'] = s[0]
+                if_operation_dict['assign'] = s[1] 
+                if_operation_dict['op1'] = s[2]
+                if_operation_dict['operation'] = 'nop'
+        if_dict['if'] = if_operation_dict
+        #print(if_dict)
+    elif in_if:
+        if re.search(r'\W*else\s+if',line):
+            num_conditions = num_conditions + 1
+            else_if_counter = else_if_counter + 1 
+            if_dict['elif_'+str(else_if_counter)+'_condition']  = re.findall(r'if\s*\(\s*(.*)\s*\)',line)[0]
+            #print(if_dict['elif_'+str(else_if_counter)+'_condition'])   
+            #print(line)
+            s = re.findall(r'\s*else if\s*\(.*\)\s*(.*);',line)
+            #print(s)
+            s = re.split(r' ',s[0])
+            print(s)
+            if_operation_dict = {}
+            #if_operation_dict['elif_condition'] = re.findall(r'if\s*\(\s*(.*)\s*\)',line)[0]
+            if_operation_dict['outout'] = s[0]
+            if len(s) == 5:                 # 2 operands operation
+                if_operation_dict['condition'] = re.findall(r'if\s*\(\s*(.*)\s*\)',line) 
+                if_operation_dict['type'] = 'double'
+                if_operation_dict['output'] = s[0] 
+                if_operation_dict['assign'] = s[1]
+                if_operation_dict['op1'] = s[2]
+                if_operation_dict['op2'] = s[4]
+                if_operation_dict['operation'] = s[3]
+            elif len(s) == 3:                     # 1 operand operation (! ~ & | ^ ~& ~| ~^)
+                if_operation_dict['type'] = 'single'
+                if re.search('~[&|^]',s[2]):    # if it contains negating operator
+                    if_operation_dict['output'] = s[0] 
+                    if_operation_dict['assign'] = s[1]
+                    if_operation_dict['op1'] = s[2][2:]
+                    if_operation_dict['operation'] = s[2][:2]
+                elif re.search('~',s[2]):
+                    if_operation_dict['output'] = s[0]
+                    if_operation_dict['assign'] = s[1] 
+                    if_operation_dict['op1'] = s[2][1:]
+                    if_operation_dict['operation'] = s[2][0]
+                else:
+                    if_operation_dict['output'] = s[0]
+                    if_operation_dict['assign'] = s[1] 
+                    if_operation_dict['op1'] = s[2]
+                    if_operation_dict['operation'] = 'nop'
+            if_dict['elif_'+str(else_if_counter)] = if_operation_dict
+        elif re.search(r'\W*else\s+',line):
+            num_conditions = num_conditions + 1
+            s = re.findall(r'\s*else \s*(.*);',line)
+            print(s)
+            s = re.split(r' ',s[0])
+            print(s)
+            if_operation_dict = {}
+            #if_operation_dict['elif_condition'] = re.findall(r'if\s*\(\s*(.*)\s*\)',line)[0]
+            if_operation_dict['outout'] = s[0]
+            if len(s) == 5:                 # 2 operands operation
+                if_operation_dict['condition'] = re.findall(r'if\s*\(\s*(.*)\s*\)',line) 
+                if_operation_dict['type'] = 'double'
+                if_operation_dict['output'] = s[0] 
+                if_operation_dict['assign'] = s[1]
+                if_operation_dict['op1'] = s[2]
+                if_operation_dict['op2'] = s[5]
+                if_operation_dict['operation'] = s[4]
+            elif len(s) == 3:                     # 1 operand operation (! ~ & | ^ ~& ~| ~^)
+                if_operation_dict['type'] = 'single'
+                if re.search('~[&|^]',s[2]):    # if it contains negating operator
+                    if_operation_dict['output'] = s[0] 
+                    if_operation_dict['assign'] = s[1]
+                    if_operation_dict['op1'] = s[2][2:]
+                    if_operation_dict['operation'] = s[2][:2]
+                elif re.search('~',s[2]):
+                    if_operation_dict['output'] = s[0]
+                    if_operation_dict['assign'] = s[1] 
+                    if_operation_dict['op1'] = s[2][1:]
+                    if_operation_dict['operation'] = s[2][0]
+                else:
+                    if_operation_dict['output'] = s[0]
+                    if_operation_dict['assign'] = s[1] 
+                    if_operation_dict['op1'] = s[2]
+                    if_operation_dict['operation'] = 'nop'
+            if_dict['else'] = if_operation_dict
+            #print(if_dict)
+        elif re.search(r'\s*end',line):
+            in_if = False
+            if_dict['num_conditions'] = num_conditions
+            if_list.append(if_dict)
+            if_locations_dict['end_line'] = line_no
+
+print("****************************************************************if operations****************************************************************")
+print(if_list)
+print('\n\n')
 
 
 
-## parsing the if statement
-#if_no = 0
-#line_no = 0
-#in_if = False
-#if_locations = []
-#if_locations_dict = {}
-#if_dict = {}
-#if_list = []
-#if_operations_dict = {}
-#if_operations_list = []
-#
-#file_code = open(fname, 'rt')
-#for line in file_code:
-#    line_no = line_no + 1
-#    if re.search(r'\W*if\s*',line) and not re.search(r'else',line):
-#        if_no = if_no + 1
-#        if_dict = {}
-#        if_dict['condition'] = re.findall(r'if\s*\(\s*(.*)\s*\)',line) 
-#        print(if_dict)
-#        if_locations_dict = {}
-#        if_locations_dict['if_no'] = if_no
-#        if_locations_dict['start_line'] = line_no
-#        if_locations_dict['if_op_line'] = line_no + 1
-#        in_if = True
-#        if_dict['if_no'] = if_no
-#    elif re.search(r'\W*else\s+if',line):
-#        if_dict['elif_condition'] = re.findall(r'if\s*\(\s*(.*)\s*\)',line) 
-#        if_locations_dict['elif_op_line'] = line_no + 1
-#    elif re.search(r'\W*else', line):
-#        if_locations_dict['end_line'] = line_no + 1
-#        if_locations_dict['else_op_line'] = line_no + 1
-#    else:
-#        if in_if:
-#            if line_no == if_locations_dict['if_op_line']:
-#                s =re.split(r'\s+',line)
-#                if_operation_dict = {}
-#                if_operation_dict['if_no'] = if_no
-#                if len(s) == 7:                 # 2 operands operation
-#                    if_operation_dict['type'] = 'double'
-#                    if_operation_dict['output'] = s[1] 
-#                    if_operation_dict['assign'] = s[2]
-#                    if_operation_dict['op1'] = s[3]
-#                    if_operation_dict['op2'] = s[5][:-1]
-#                    if_operation_dict['operation'] = s[4]
-#                    if_dict['if_operation'] = if_operation_dict
-#                elif len(s) == 5:                     # 1 operand operation (! ~ & | ^ ~& ~| ~^)
-#                    if_operation_dict['type'] = 'single'
-#                    if re.search('~[&|^]',s[3]):    # if it contains negating operator
-#                        if_operation_dict['output'] = s[1] 
-#                        if_operation_dict['assign'] = s[2]
-#                        if_operation_dict['op1'] = s[3][2:][:-1]
-#                        if_operation_dict['operation'] = s[3][:2]
-#                    elif re.search('~',s[3]):
-#                        if_operation_dict['output'] = s[1]
-#                        if_operation_dict['assign'] = s[2] 
-#                        if_operation_dict['op1'] = s[3][1:][:-1]
-#                        if_operation_dict['operation'] = s[3][0]
-#                    else:
-#                        if_operation_dict['output'] = s[1]
-#                        if_operation_dict['assign'] = s[2] 
-#                        if_operation_dict['op1'] = s[3][:-1]
-#                        if_operation_dict['operation'] = 'nop'
-#                    if_dict['if_operation'] = if_operation_dict
-#            elif line_no == if_locations_dict['elif_op_line']:
-#                s =re.split(r'\s+',line)
-#                if_operation_dict = {}
-#                if_operation_dict['if_no'] = if_no
-#                if len(s) == 7:                 # 2 operands operation
-#                    if_operation_dict['type'] = 'double'
-#                    if_operation_dict['output'] = s[1] 
-#                    if_operation_dict['assign'] = s[2]
-#                    if_operation_dict['op1'] = s[3]
-#                    if_operation_dict['op2'] = s[5][:-1]
-#                    if_operation_dict['operation'] = s[4]
-#                    if_dict['elif_operation'] = if_operation_dict
-#                elif len(s) == 5:                     # 1 operand operation (! ~ & | ^ ~& ~| ~^)
-#                    if_operation_dict['type'] = 'single'
-#                    if re.search('~[&|^]',s[3]):    # if it contains negating operator
-#                        if_operation_dict['output'] = s[1] 
-#                        if_operation_dict['assign'] = s[2]
-#                        if_operation_dict['op1'] = s[3][2:][:-1]
-#                        if_operation_dict['operation'] = s[3][:2]
-#                    elif re.search('~',s[3]):
-#                        if_operation_dict['output'] = s[1]
-#                        if_operation_dict['assign'] = s[2] 
-#                        if_operation_dict['op1'] = s[3][1:][:-1]
-#                        if_operation_dict['operation'] = s[3][0]
-#                    else:
-#                        if_operation_dict['output'] = s[1]
-#                        if_operation_dict['assign'] = s[2] 
-#                        if_operation_dict['op1'] = s[3][:-1]
-#                        if_operation_dict['operation'] = 'nop'
-#                    if_dict['elif_operation'] = if_operation_dict
-#            elif line_no == if_locations_dict['else_op_line']:
-#                s =re.split(r'\s+',line)
-#                if_operation_dict = {}
-#                if_operation_dict['if_no'] = if_no
-#                if len(s) == 7:                 # 2 operands operation
-#                    if_operation_dict['type'] = 'double'
-#                    if_operation_dict['output'] = s[1] 
-#                    if_operation_dict['assign'] = s[2]
-#                    if_operation_dict['op1'] = s[3]
-#                    if_operation_dict['op2'] = s[5][:-1]
-#                    if_operation_dict['operation'] = s[4]
-#                    if_dict['else_operation'] = if_operation_dict
-#                elif len(s) == 5:                     # 1 operand operation (! ~ & | ^ ~& ~| ~^)
-#                    if_operation_dict['type'] = 'single'
-#                    if re.search('~[&|^]',s[3]):    # if it contains negating operator
-#                        if_operation_dict['output'] = s[1] 
-#                        if_operation_dict['assign'] = s[2]
-#                        if_operation_dict['op1'] = s[3][2:][:-1]
-#                        if_operation_dict['operation'] = s[3][:2]
-#                    elif re.search('~',s[3]):
-#                        if_operation_dict['output'] = s[1]
-#                        if_operation_dict['assign'] = s[2] 
-#                        if_operation_dict['op1'] = s[3][1:][:-1]
-#                        if_operation_dict['operation'] = s[3][0]
-#                    else:
-#                        if_operation_dict['output'] = s[1]
-#                        if_operation_dict['assign'] = s[2] 
-#                        if_operation_dict['op1'] = s[3][:-1]
-#                        if_operation_dict['operation'] = 'nop'
-#                    if_dict['else_operation'] = if_operation_dict
             
 parameters_dict = {}
 for i in module_params:
@@ -610,7 +637,10 @@ for i in module_ports:
     
 print(module_ports_size)
 
-
+biggest_size = 0
+for i in module_ports_size.values():
+    if biggest_size < i:
+        biggest_size = i
 
 if 'clk' in module_ports:
     clk_period = int(input("Enter Clock period: "))
@@ -636,7 +666,6 @@ TB_content += 'module ' + module_name + '_tb ();\n'
 
 # adding the TB parameters
 for param in parameters_dict:
-    print(param)
     TB_content += '\tparameter\t'+param+'_tb = {};\n'.format(parameters_dict[param])
 
 # adding the TB header ports
@@ -653,7 +682,8 @@ for port in module_ports:
     elif module_ports[port]['size'] == 1:
         TB_content += '\t\t\t\t\t\t'
     TB_content += port + '_tb;\n'   
-    
+if biggest_size > 1:
+    TB_content += '\treg\t\t[{}:0]\t\t\t\tinitial_state;\n'.format(biggest_size)
 if choice == 'y':
     for port in module_ports:
         if module_ports[port]['dir'] == 'output':
@@ -735,15 +765,23 @@ for port in module_ports:
 TB_content += '\n\n'
 
 # directed testing
+tested_outputs = []
+TB_content += '//parsing the case statements\n'
 for i in case_list:
     case_parameter = i['parameter'] 
     for j in i['operations']:
-        op1_value = random.randint(0,pow(2,module_ports_size[j['op1']]-1))
+        if j['output'] not in tested_outputs:
+            tested_outputs.append(j['output'])        
         if j['case'][:-1] not in 'default':
-            print(j['case'][:-1])
-            TB_content += '\t'+ str(case_parameter) + '_tb = ' + j['case'][:-1] + '; ' + j['op1'] + '_tb = ' + str(op1_value) + ';'
+            if j['op1'] in input_ports:
+                op1_value = random.randint(0,pow(2,module_ports_size[j['op1']]-1))
+                TB_content += '\t'+ str(case_parameter) + '_tb = ' + j['case'][:-1] + '; ' + j['op1'] + '_tb = ' + str(op1_value) + ';'
+            elif j['op1'] in output_ports:
+                TB_content += '\t'+ str(case_parameter) + '_tb = ' + j['case'][:-1] + '; initial_state = ' + j['op1'] + '_tb;'
+            else:
+                TB_content += '\t'+ str(case_parameter) + '_tb = ' + j['case'][:-1] + '; '
             if 'op2' in j.keys():
-                if j['op2'] in module_ports:
+                if j['op2'] in input_ports:
                     op2_value = random.randint(0,pow(2,module_ports_size[j['op2']]-1))
                     TB_content += ' ' + j['op2'] + '_tb = ' + str(op2_value) + ';\n'
             else:
@@ -752,18 +790,154 @@ for i in case_list:
                 TB_content += '#{}\n'.format(clk_period)
             else:
                 TB_content += '#1\n'
-            if 'op2' in j.keys():
-                if j['op2'] in module_ports:
-                    TB_content += '\tif(' + j['output'] + '_tb == (' + j['op1'] + '_tb ' + j['operation'] + ' ' + j['op2'] + '_tb))\n'
+
+            TB_content += '\tif(' + j['output'] + '_tb == ('
+            if j['op1'] in input_ports:
+                if j['operation'] == '~':
+                    TB_content += j['operation'] + j['op1'] + '_tb '
                 else:
-                    TB_content += '\tif(' + j['output'] + '_tb == (' + j['op1'] + '_tb ' + j['operation'] + ' ' + j['op2'] + '))\n'
+                    TB_content += j['op1'] + '_tb '
+            elif j['op1'] in output_ports:
+                TB_content += 'initial_state'
             else:
-                TB_content += '\tif(' + j['output'] + '_tb == ('+ j['operation'] + j['op1'] +'_tb))\n'
+                TB_content += j['op1']
+            if 'op2' in j.keys():
+                if j['op2'] in input_ports:
+                    TB_content += j['operation'] + ' ' + j['op2'] + '_tb'
+                else:
+                    TB_content += j['operation'] + ' ' + j['op2']
+            
+            TB_content += '))\n'
             TB_content += '\t\t$display("Successful Test!");\n'
             TB_content += '\telse\n\t\t$display("Failed Test!");\n'
-            
 
 
+
+
+TB_content += '\n\n'
+TB_content += '//parsing the if statements\n'
+for i in if_list:
+    # get the if operation directed test
+    if i['if_condition'][0] != '~':
+        TB_content += '\t' + i['if_condition'] + '_tb = 1; '
+    else:
+        TB_content += '\t' + i['if_condition'][1:] + '_tb = 0; '
+    if i['if']['op1'] in input_ports:
+        op1_value = random.randint(0,pow(2,module_ports_size[i['if']['op1']]-1))
+        TB_content += '\t' + i['if']['op1'] + '_tb = ' + str(op1_value) + ';'
+    elif i['if']['op1'] in output_ports:
+        TB_content += '\t' + 'initial_state = ' + i['if']['op1'] + '_tb;'
+    if 'op2' in i['if'].keys():
+        if i['if']['op2'] in input_ports:
+            op2_value = random.randint(0,pow(2,module_ports_size[i['if']['op2']]-1))
+            TB_content += '\t' + i['if']['op2'] + '_tb = ' + str(op2_value) + ';'
+    TB_content += '\n'
+    
+    if 'clk' in module_ports:  
+        TB_content += '#{}\n'.format(clk_period)
+    else:
+        TB_content += '#1\n'
+    
+    TB_content += '\tif(' + i['if']['output'] + '_tb == ('
+    if i['if']['op1'] in input_ports:
+        if i['if']['operation'] == '~':
+            TB_content += i['if']['operation'] + i['if']['op1'] + '_tb '
+        else:
+            TB_content += i['if']['op1'] + '_tb '
+    elif i['if']['op1'] in output_ports:
+        TB_content += 'initial_state'
+    else:
+        TB_content += i['if']['op1']
+    if 'op2' in i['if'].keys():
+        if i['if']['op2'] in input_ports:
+            TB_content += i['if']['operation'] + ' ' + i['if']['op2'] + '_tb'
+        else:
+            TB_content += i['if']['operation'] + ' ' + i['if']['op2']
+    TB_content += '))\n'
+    TB_content += '\t\t$display("Successful Test!");\n'
+    TB_content += '\telse\n\t\t$display("Failed Test!");\n'
+    if i['if_condition'][0] != '~':
+        TB_content += '\t' + i['if_condition'] + '_tb = 0; '
+    else:
+        TB_content += '\t' + i['if_condition'][1:] + '_tb = 1; '
+    TB_content += '\n'
+
+
+    # get the else if operation directed test
+    for m in range (1, i['num_conditions'] - 1):
+        if i['elif_'+str(m)+'_condition'][0] != '~':
+            TB_content += '\t' + i['elif_'+str(m)+'_condition'] + '_tb = 1; '
+        else:
+            TB_content += '\t' + i['elif_'+str(m)+'_condition'][1:] + '_tb = 0; '   
+        if i['elif_'+str(m)]['op1'] in input_ports:
+            op1_value = random.randint(0,pow(2,module_ports_size[i['elif_'+str(m)]['op1']]-1))
+            TB_content += '\t' + i['elif_'+str(m)]['op1'] + '_tb = ' + str(op1_value) + ';'
+        elif i['elif_'+str(m)]['op1'] in output_ports:
+            TB_content += '\t' + 'initial_state = ' + i['elif_'+str(m)]['op1'] + '_tb;'
+        if 'op2' in i['elif_'+str(m)].keys():
+            if i['elif_'+str(m)]['op2'] in input_ports:
+                op2_value = random.randint(0,pow(2,module_ports_size[i['elif_'+str(m)]['op2']]-1))
+                TB_content += '\t' + i['elif_'+str(m)]['op2'] + '_tb = ' + str(op2_value) + ';'
+        TB_content += '\n'
+
+        if 'clk' in module_ports:  
+            TB_content += '#{}\n'.format(clk_period)
+            print(clk_period)
+        else:
+            TB_content += '#1\n'
+
+        TB_content += '\tif(' + i['elif_'+str(m)]['output'] + '_tb == ('
+        if i['elif_'+str(m)]['op1'] in input_ports:
+            if i['elif_'+str(m)]['operation'] != 'nop':
+                TB_content += i['elif_'+str(m)]['operation'] + i['elif_'+str(m)]['op1'] + '_tb '
+            else:
+                TB_content += i['elif_'+str(m)]['op1'] + '_tb '
+        elif i['elif_'+str(m)]['op1'] in output_ports:
+            TB_content += 'initial_state'
+        else:
+            TB_content += i['elif_'+str(m)]['op1']
+        if 'op2' in i['elif_'+str(m)].keys():
+            if i['elif_'+str(m)]['op2'] in input_ports:
+                TB_content += i['elif_'+str(m)]['operation'] + ' ' + i['elif_'+str(m)]['op2'] + '_tb'
+            else:
+                TB_content += i['elif_'+str(m)]['operation'] + ' ' + i['elif_'+str(m)]['op2']
+        TB_content += '))\n'
+        TB_content += '\t\t$display("Successful Test!");\n'
+        TB_content += '\telse\n\t\t$display("Failed Test!");\n'
+        if i['elif_'+str(m)+'_condition'][0] != '~':
+            TB_content += '\t' + i['elif_'+str(m)+'_condition'] + '_tb = 0; '
+        else:
+            TB_content += '\t' + i['elif_'+str(m)+'_condition'][1:] + '_tb = 1; '
+        TB_content += '\n'
+
+    # get the else operation directed test
+    if i['else']['op1'] in output_ports:
+        TB_content += '\t' + 'initial_state = ' + i['else']['op1'] + '_tb;\n'
+    
+    if 'clk' in module_ports:  
+        TB_content += '#{}\n'.format(clk_period)
+    else:
+        TB_content += '#1\n'
+
+    TB_content += '\tif(' + i['else']['output'] + '_tb == ('
+    if i['else']['op1'] in input_ports:
+        if i['else']['operation'] != 'nop':
+            TB_content += i['else']['operation'] + i['else']['op1'] + '_tb '
+        else:
+            TB_content += i['else']['op1'] + '_tb '
+    elif i['else']['op1'] in output_ports:
+        TB_content += 'initial_state'
+    else:
+        TB_content += i['else']['op1']
+    if 'op2' in i['else'].keys():
+        if i['else']['op2'] in input_ports:
+            TB_content += i['else']['operation'] + ' ' + i['else']['op2'] + '_tb'
+        else:
+            TB_content += i['else']['operation'] + ' ' + i['else']['op2']
+    TB_content += '))\n'
+    TB_content += '\t\t$display("Successful Test!");\n'
+    TB_content += '\telse\n\t\t$display("Failed Test!");\n'
+    TB_content += '\n'
 
 
 if choice == 'y':

@@ -26,10 +26,8 @@ assign ayhaga = x ? a : b;
 
 
 always @(posedge clk, negedge rst) begin
-    if (a == b)
-        data_out <= 'd0;
-    else if (!rst)
-        data_out <= data_in + register;
+    if (a)  data_out <= 'd0;
+    else if (!rst)  data_out <= data_in + register;
     end
 
 
