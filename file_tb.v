@@ -11,9 +11,11 @@ module file_tb ();
 	reg 	[4:0]				x_tb;
 	wire 	[WIDTH_tb - 1 : 0]	data_out_tb;
 	wire 						out_tb;
+	wire 						pp_tb;
 	wire 						d_tb;
 	reg 	[WIDTH_tb - 1 : 0]	data_out_exp;
 	reg 						out_exp;
+	reg 						pp_exp;
 	reg 						d_exp;
 
 
@@ -37,6 +39,7 @@ file #(
 	.x(x_tb),
 	.data_out(data_out_tb),
 	.out(out_tb),
+	.pp(pp_tb),
 	.d(d_tb)
 	);
 
@@ -52,16 +55,16 @@ initial begin
 #5.0
 	rst_tb = 1'd1;
 
-	data_in_tb = WIDTH'b0 ;
+	data_in_tb = 'b0 ;
 	a_tb = 1'b0 ;
 	b_tb = 1'b0 ;
 	x_tb = 5'b0 ;
 
 
 	repeat(10) @(negedge clk_tb) begin
-		{data_in_tb, a_tb, b_tb, x_tb, data_out_exp, out_exp, d_exp} = test_vect[vecnum];
+		{data_in_tb, a_tb, b_tb, x_tb, data_out_exp, out_exp, pp_exp, d_exp} = test_vect[vecnum];
 #10
-		if(data_out_exp == data_out_tb &&out_exp == out_tb &&d_exp == d_tb)
+		if(data_out_exp == data_out_tb &&out_exp == out_tb &&pp_exp == pp_tb &&d_exp == d_tb)
 			$display("Successful Test Case!");
 		else begin
 			$display("Failed Test Case!");
@@ -84,7 +87,7 @@ end
 
 
 initial begin 
-	$monitor($time, ": data_in = %d; a = %d; b = %d; x = %d; data_out = %d; out = %d; d = %d; ",data_in_tb ,a_tb ,b_tb ,x_tb ,data_out_tb ,out_tb ,d_tb );
+	$monitor($time, ": data_in = %d; a = %d; b = %d; x = %d; data_out = %d; out = %d; pp = %d; d = %d; ",data_in_tb ,a_tb ,b_tb ,x_tb ,data_out_tb ,out_tb ,pp_tb ,d_tb );
 end
 
 
