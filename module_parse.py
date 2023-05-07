@@ -232,6 +232,7 @@ for line in file_code:                  #assign data_out = op1 [+\-\*/%&|^]  op2
         cont = {}
         i = i + 1
         s =re.split(r'\s+',line)
+        print(s)
         if not re.search(r':',line) :       #assign out = (expr)
             if len(s) == 7:                 # 2 operands operation
                 cont['type'] = 'double'
@@ -937,6 +938,52 @@ for i in if_list:
     TB_content += '))\n'
     TB_content += '\t\t$display("Successful Test!");\n'
     TB_content += '\telse\n\t\t$display("Failed Test!");\n'
+    TB_content += '\n\n'
+
+# get the continous assignment directed test
+TB_content += '// parsing the continuous assignments\n'
+for i in continuous_parameters:
+    if i['type'] != 'double conditional':
+        if i['op1'] in input_ports:
+            op1_value = random.randint(0,pow(2,module_ports_size[i['op1']]-1))
+            if i['op1'][0] == '~':
+                TB_content += '\t' + i['op1'][1:] + '_tb = ' + str(op1_value) + ';'
+            else:
+                TB_content += '\t' + i['op1'] + '_tb = ' + str(op1_value) + ';'
+        elif i['op1'] in output_ports:
+            TB_content += '\t initial_state = ' + i['op1'] + '_tb;'
+        if i['type'] == 'double':
+            if i['op2'] in input_ports:
+                op2_value = random.randint(0,pow(2,module_ports_size[i['op2']]-1))
+                TB_content += '\t' + i['op2'] + '_tb = ' + str(op2_value) + ';\n'
+        TB_content += '#1\n'
+        TB_content += '\tif(' + i['output'] + '_tb == ('
+        if i['op1'] in input_ports:
+            TB_content += i['op1'] + '_tb '
+        elif i['op1'] in output_ports:
+            TB_content += 'initial_state '
+        if i['type'] == 'double':
+            TB_content += i['operation'] + ' ' + i['op2']+ '_tb'
+        TB_content += '))\n\t\t$display("Successful Test!");\n'
+        TB_content += '\telse\n\t\t$display("Failed Test!");\n'
+    else:
+        TB_content += '\t' + i['condition'] + '_tb = 1; '
+        if i['op1'] in input_ports:
+            op1_value = random.randint(0,pow(2,module_ports_size[i['op1']]-1))
+            if i['op1'][0] == '~':
+                TB_content += '\t' + i['op1'][1:] + '_tb = ' + str(op1_value) + ';\n'
+            else:
+                TB_content += '\t' + i['op1'] + '_tb = ' + str(op1_value) + ';\n'
+            TB_content += '#1\n'
+            TB_content += '\tif(' + i['output'] + '_tb == ('
+            if i['op1'] in input_ports:
+                TB_content += i['op1'] + '_tb '
+            elif i['op1'] in output_ports:
+                TB_content += 'initial_state '
+            TB_content += '))\n\t\t$display("Successful Test!");\n'
+            TB_content += '\telse\n\t\t$display("Failed Test!");\n'
+    
+
     TB_content += '\n'
 
 
